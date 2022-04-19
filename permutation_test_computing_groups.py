@@ -127,14 +127,20 @@ if __name__ == "__main__":
     # tresh = 4 (286 clusters)--- min p-cluster-val: 0.46 ~~ 0.46564885496183206
     # tresh = 16 (9 clusters)--- min p-cluster-val: 0.15 ~~ 0.14694656488549618
     # tresh = ff (ff clusters)--- min p-cluster-val: ff ~~ ff
-    
-    
-    # just try increasing the n_jobs number
-    # import joblib #i want it to run in paralell more, but i am not well versed in joblib
+
+
+    from scipy.stats import ttest_ind
+    def testFun(*args):
+        a, b = args
+        t, _ = ttest_ind(a,b)
+
+        return t
+
     T_obs, clusters, cluster_p_values, H0 = mne.stats.permutation_cluster_test(X, 
-                                       threshold=thresh, tail=0, 
+                                       threshold=None, tail=0, 
                                        n_permutations=524, adjacency = adjacency,
-                                       n_jobs = -1)
+                                       n_jobs = -1, 
+                                       stat_fun = testFun)
     
     print(cluster_p_values[cluster_p_values < 0.999999])
     
