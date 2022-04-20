@@ -121,22 +121,21 @@ if __name__ == "__main__":
     ##
     
     
-    #831.29401101
-    
-    # tresh = 12 (22 clusters)--- min p-cluster-val: 0.029 ~~ 0.02862595
-    # tresh = 8 (105 clusters)--- min p-cluster-val: 0.09 ~~ 0.0916030534351145
-    # tresh = 10 (52 clusters)--- min p-cluster-val: 0.04 ~~ 0.04007633587786259
-    # tresh = 4 (286 clusters)--- min p-cluster-val: 0.46 ~~ 0.46564885496183206
-    # tresh = 16 (9 clusters)--- min p-cluster-val: 0.15 ~~ 0.14694656488549618
-    # tresh = ff (ff clusters)--- min p-cluster-val: ff ~~ ff
-    
+    from scipy.stats import ttest_ind
+    def testFun(*args):
+        a, b = args
+        t, _ = ttest_ind(a,b)
+
+        return t
     
     # just try increasing the n_jobs number
     # import joblib #i want it to run in paralell more, but i am not well versed in joblib
     T_obs, clusters, cluster_p_values, H0 = mne.stats.permutation_cluster_test(X, 
                                        threshold=thresh, tail=0, #correct tail
-                                       n_permutations= 2524, adjacency = adjacency,
+                                       n_permutations= 524, adjacency = adjacency,
                                        n_jobs = -1)
+    
+    
     
     #stat_fun endre til t fra scipy remove the p
     
@@ -226,7 +225,7 @@ def clustersPLot(p_acc = 0.05, save = False, fol = "none"):
         sig_times = tfr_epochs.times[time_inds]
     
         # initialize figure
-        fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3))
+        fig, ax_topo = plt.subplots(2, 1, figsize=(10, 6))
     
         # create spatial mask
         mask = np.zeros((f_map.shape[0], 1), dtype=bool)
@@ -330,5 +329,14 @@ if save:
         
         
         
+##
     
     
+    #831.29401101
+    
+    # tresh = 12 (22 clusters)--- min p-cluster-val: 0.029 ~~ 0.02862595
+    # tresh = 8 (105 clusters)--- min p-cluster-val: 0.09 ~~ 0.0916030534351145
+    # tresh = 10 (52 clusters)--- min p-cluster-val: 0.04 ~~ 0.04007633587786259
+    # tresh = 4 (286 clusters)--- min p-cluster-val: 0.46 ~~ 0.46564885496183206
+    # tresh = 16 (9 clusters)--- min p-cluster-val: 0.15 ~~ 0.14694656488549618
+    # tresh = ff (ff clusters)--- min p-cluster-val: ff ~~ ff 
