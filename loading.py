@@ -22,6 +22,11 @@ data = file['data']
 trialtable = file['trialtable']
 rej_idx = file['rej_idx']
 
+rawArray = mne.io.RawArray()
+
+
+
+
 
 
 
