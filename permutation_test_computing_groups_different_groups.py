@@ -18,10 +18,7 @@ from Find_bads_and_interpolate import All_epochs, all_channels
 from joblib import Parallel, delayed
 import itertools as it
 
-#mne.spatial_src_adjacency
-#mne.stats.spatio_temporal_cluster_test
-#mne.stats.summarize_clusters_stc
-#mne.datasets.sample
+
 
 
 # --Freq variables--
@@ -32,9 +29,7 @@ decim_morlet = 3
 #--------------------
 
 # --Loading variables--
-#ids = Event_ids[-1] #One Congruent plus [4]
 
-ids_to_use = [4,7] #BOth congruent AV
 
 #channels_test = ["C1"]
 crop_start = 0
@@ -44,7 +39,7 @@ baseline_tuple = (None,-0.1)
 #-------------------
 
 #or the N1/P2 dataset, between-subjects differences (SM vs. NSM) were tested 
-#for each condition (AV Congruent, AV Incongruent, Auditory, Visual), 
+#for each conidition (AV Congruent, AV Incongruent, Auditory, Visual), 
 #and for the average of both AVconditions. Subsequently
 
 # Dividing into two groups
