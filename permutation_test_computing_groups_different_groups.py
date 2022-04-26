@@ -113,12 +113,8 @@ times_list = tfr_epochs.times
 freqs_list = tfr_epochs.freqs
 
 
-if __name__ == "__main__":
-    
-    
-    ##
-    thresh = 12
-    ##
+def permTestImp(X = X, thresh = 12, tail = 0, n_perm = 524):
+    # X, Treshhold, tail, n_perm
     
     
     from scipy.stats import ttest_ind
@@ -131,8 +127,8 @@ if __name__ == "__main__":
     # just try increasing the n_jobs number
     # import joblib #i want it to run in paralell more, but i am not well versed in joblib
     T_obs, clusters, cluster_p_values, H0 = mne.stats.permutation_cluster_test(X, 
-                                       threshold=thresh, tail=0, #correct tail
-                                       n_permutations= 524, adjacency = adjacency,
+                                       threshold=thresh, tail=tail, #correct tail
+                                       n_permutations= n_perm, adjacency = adjacency,
                                        n_jobs = -1)
     
     
@@ -156,23 +152,25 @@ if __name__ == "__main__":
     
     #quanile of the test statistic
     quantil = (H0<obs_H0).mean()
-    
-    print(1-quantil)
+
+    if __name__ == "__main__":
+        print(1-quantil)
+            
+        def infoCluster(clust):
+            
+            ch_ret = list(np.array(all_channels)[np.unique(clust[0])])
+            times_ret = times_list[np.unique(clust[2])]
+            freq_ret = freqs_list[np.unique(clust[1])]
+            
+            return ch_ret, freq_ret, times_ret
         
-    
-    def infoCluster(clust):
-        
-        ch_ret = list(np.array(all_channels)[np.unique(clust[0])])
-        times_ret = times_list[np.unique(clust[2])]
-        freq_ret = freqs_list[np.unique(clust[1])]
-        
-        return ch_ret, freq_ret, times_ret
-    
-    for clusts in np.array(clusters)[cluster_p_values < 0.5]:
-        print(infoCluster(clusts))
+        for clusts in np.array(clusters)[cluster_p_values < 0.5]:
+            print(infoCluster(clusts))
+
+    return T_obs, clusters, cluster_p_values, H0
     
     
-    
+T_obs, clusters, cluster_p_values, H0 = permTestImp()
     
     
     
@@ -225,7 +223,7 @@ def clustersPLot(p_acc = 0.05, save = False, fol = "none"):
         sig_times = tfr_epochs.times[time_inds]
     
         # initialize figure
-        fig, ax_topo = plt.subplots(2, 1, figsize=(10, 6))
+        fig, ax_topo = plt.subplots(1, 1, figsize=(10, 6))
     
         # create spatial mask
         mask = np.zeros((f_map.shape[0], 1), dtype=bool)
@@ -281,7 +279,7 @@ def clustersPLot(p_acc = 0.05, save = False, fol = "none"):
         fig.subplots_adjust(bottom=.05)
         
     
-        plt.show(block = False)
+        plt.show(block = True)
         
         if save:
             plt.savefig(f"clu{i_clu+1}_p{p_values_good[i_clu] :.3f}_time" +
