@@ -170,7 +170,7 @@ def permTestImp(X = X, thresh = 12, tail = 0, n_perm = 524):
     return T_obs, clusters, cluster_p_values, H0
     
     
-T_obs, clusters, cluster_p_values, H0 = permTestImp()
+T_obs, clusters, cluster_p_values, H0 = permTestImp(n_perm=100)
     
     
     
@@ -222,8 +222,10 @@ def clustersPLot(p_acc = 0.05, save = False, fol = "none"):
         # get signals at the sensors contributing to the cluster
         sig_times = tfr_epochs.times[time_inds]
     
-        # initialize figure
-        fig, ax_topo = plt.subplots(1, 1, figsize=(10, 6))
+        # Initialize MAIN figure and subfigure
+        fig_main = plt.figure(constrained_layout=True, figsize=(10, 8)) # 
+        subfigs = fig_main.subfigures(2, 1) #, wspace=0.07
+        ax_topo = subfigs[0].subplots(1, 1) ##fig,   ->   , figsize=(10, 6)
     
         # create spatial mask
         mask = np.zeros((f_map.shape[0], 1), dtype=bool)
@@ -275,10 +277,25 @@ def clustersPLot(p_acc = 0.05, save = False, fol = "none"):
         ax_colorbar2.set_ylabel('F-stat')
     
         # clean up viz
-        mne.viz.tight_layout(fig=fig)
-        fig.subplots_adjust(bottom=.05)
+        #mne.viz.tight_layout(fig=subfigs[0])
+        #fig.subplots_adjust(bottom=.05)
         
-    
+        
+        ####
+        # Topografic vizualizations for different sample times
+        ####
+        topo_num = 3
+        ax_snaps = subfigs[1].subplots(1,topo_num)
+        
+        
+        snap_inds = np.linspace(0, (len(time_inds)-1),num = topo_num, dtype="int")
+        for i, snap_shot in enumerate(time_inds[snap_inds]):
+        
+            f_evoked = mne.EvokedArray(f_map[:, np.newaxis], tfr_epochs.info, tmin=snap_shot)
+            f_evoked.plot_topomap(times=snap_shot, mask=mask, axes=ax_snaps[i], cmap='Reds',
+                              vmin=np.min, vmax=np.max, show=False,
+                              colorbar=False, mask_params=dict(markersize=10))
+        
         plt.show(block = True)
         
         if save:
