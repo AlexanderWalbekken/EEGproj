@@ -216,8 +216,8 @@ def clustersPLot(p_acc = 0.05, save = False, fol = "none"):
         freq_inds = np.unique(freq_inds_all)
     
         # get topography for F stat
-        f_map = F_obs[:, freq_inds, :].mean(axis=1)
-        f_map = f_map[:,time_inds].mean(axis=1)
+        f_map_total = F_obs[:, freq_inds, :].mean(axis=1)
+        f_map = f_map_total[:,time_inds].mean(axis=1)
     
         # get signals at the sensors contributing to the cluster
         sig_times = tfr_epochs.times[time_inds]
@@ -284,19 +284,29 @@ def clustersPLot(p_acc = 0.05, save = False, fol = "none"):
         ####
         # Topografic vizualizations for different sample times
         ####
-        topo_num = 3
+        topo_num = 4
         ax_snaps = subfigs[1].subplots(1,topo_num)
         
         
         snap_inds = np.linspace(0, (len(time_inds)-1),num = topo_num, dtype="int")
         for i, snap_shot in enumerate(time_inds[snap_inds]):
+            f_map = f_map_total[:,snap_shot] #.mean(axis=1) #Assume the meam isn not needed for one time
+            
+            #Choosing only current channels
+            this_ch_inds = np.unique(space_inds[time_inds_all == snap_shot])
+            
+            # create spatial mask
+            mask = np.zeros((f_map.shape[0], 1), dtype=bool)
+            mask[this_ch_inds, :] = True
+            
+            t_s = tfr_epochs.times[snap_shot] #TODO: DOuble check this is completly accurate
         
-            f_evoked = mne.EvokedArray(f_map[:, np.newaxis], tfr_epochs.info, tmin=snap_shot)
-            f_evoked.plot_topomap(times=snap_shot, mask=mask, axes=ax_snaps[i], cmap='Reds',
+            f_evoked = mne.EvokedArray(f_map[:, np.newaxis], tfr_epochs.info, tmin=t_s)
+            f_evoked.plot_topomap(times=t_s, mask=mask, axes=ax_snaps[i], cmap='Reds',
                               vmin=np.min, vmax=np.max, show=False,
                               colorbar=False, mask_params=dict(markersize=10))
         
-        plt.show(block = True)
+        plt.show(block = False) #False in Spyder, True in VS-code for now...
         
         if save:
             plt.savefig(f"clu{i_clu+1}_p{p_values_good[i_clu] :.3f}_time" +
