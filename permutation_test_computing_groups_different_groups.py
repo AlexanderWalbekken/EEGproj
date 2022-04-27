@@ -11,7 +11,7 @@ import numpy as np
 
 import mne
 
-from pre import Event_ids, direct, list_files, common
+#from pre import Event_ids, direct, list_files, common
 from pre import Speech, Non_speech
 
 from Find_bads_and_interpolate import All_epochs, all_channels
@@ -19,102 +19,88 @@ from joblib import Parallel, delayed
 import itertools as it
 
 
+#All_epochs are all the subjects providede as a dictionary
+#subgroups [keys1,keys2], where keys* are then lists(or array) of the keys to be used in the groups
+#e_ids is a list [ids1,ids2], where ids* are list of the event ids to use for each group
+def createGroupsFreq(subgroups, e_ids, All_epochs):
 
-
-# --Freq variables--
-frequencies = np.arange(4, 38, 2)
-n_cycles_morlet = 5 #2
-decim_morlet = 3
-
-#--------------------
-
-# --Loading variables--
-
-
-#channels_test = ["C1"]
-crop_start = 0
-crop_end = 0.7
-baseline_tuple = (None,-0.1)
-
-#-------------------
-
-#or the N1/P2 dataset, between-subjects differences (SM vs. NSM) were tested 
-#for each conidition (AV Congruent, AV Incongruent, Auditory, Visual), 
-#and for the average of both AVconditions. Subsequently
-
-# Dividing into two groups
-Group1 = []
-G1 = []
-
-Group2 = []
-G2 = []
-
-
-
-
-def powerMinusERP(subject,id_in, All_epochs = All_epochs):
-    spe = subject
-    ids = id_in
+    # Dividing into two groups
+    Group1 = []
+    G1 = []
+    
+    Group2 = []
+    G2 = []
     
     
-    epochs = All_epochs[spe]
-    ep_avg = epochs[ids].average()
+    def powerMinusERP(subject,id_in, All_epochs = All_epochs):
+        # --Freq variables--
+        frequencies = np.arange(4, 38, 2)
+        n_cycles_morlet = 5 #2
+        decim_morlet = 3
     
-    ep_done = epochs[ids].copy().subtract_evoked(ep_avg)
-    power = mne.time_frequency.tfr_morlet(ep_done, n_cycles=n_cycles_morlet, 
-                                              return_itc=False,
-                                              freqs=frequencies, 
-                                              decim=decim_morlet)#.crop(-0.95,0.95)
+        spe = subject
+        ids = id_in
+        
+        
+        epochs = All_epochs[spe]
+        ep_avg = epochs[ids].average()
+        
+        ep_done = epochs[ids].copy().subtract_evoked(ep_avg)
+        power = mne.time_frequency.tfr_morlet(ep_done, n_cycles=n_cycles_morlet, 
+                                                  return_itc=False,
+                                                  freqs=frequencies, 
+                                                  decim=decim_morlet)#.crop(-0.95,0.95)
+        ## TODO: Plot freq map again to re-check for edge artefacts
+        #change crop to 0.
+        
+        power = power.apply_baseline(mode="logratio", baseline = (-0.5,-0.2)).crop(-0.95,0.95)
+        
+        return [power.data, power]
     
-    #change crop to 0.
     
-    power = power.apply_baseline(mode="logratio", baseline = (-0.5,-0.2)).crop(-0.95,0.95)
+     #['Tabi_A_Tabi_V','Tagi_A_Tabi_V'] + ['Tagi_A_Tagi_V', 'Tabi_A_Tagi_V']
+     
+     #['Tabi_A_Tabi_V','Tagi_A_Tabi_V'] + ['Tagi_A_Tagi_V', 'Tabi_A_Tagi_V']
     
-    return [power.data, power]
+    group_1_prod = it.product(subgroups[0], e_ids[0])   
+    group_2_prod = it.product(subgroups[1], e_ids[1])  
+    
+    
+    out1 = Parallel(n_jobs=-1)(delayed(powerMinusERP)(sub,ids)
+                        for sub, ids in group_1_prod)
+    
+    Group1 = [r[0] for r in out1]
+    G1 = [r[1] for r in out1]
+    
+    print("Group1 DONE")
+    
+    out2 = Parallel(n_jobs=-1)(delayed(powerMinusERP)(sub,ids)
+                        for sub, ids in group_2_prod)
+    
+    Group2 = [r[0] for r in out2]
+    G2 = [r[1] for r in out2]
+    
+    print("Group2 DONE")
+    
+    tfr_epochs = G1[0]
+    
+    X = [np.array(Group1), np.array(Group2)]
+
+    return X, tfr_epochs
 
 
- #['Tabi_A_Tabi_V','Tagi_A_Tabi_V'] + ['Tagi_A_Tagi_V', 'Tabi_A_Tagi_V']
-
-group_1_prod = it.product(Speech, ['Tabi_A_Tabi_V','Tagi_A_Tabi_V'] + ['Tagi_A_Tagi_V', 'Tabi_A_Tagi_V'])   
-group_2_prod = it.product(Non_speech, ['Tabi_A_Tabi_V','Tagi_A_Tabi_V'] + ['Tagi_A_Tagi_V', 'Tabi_A_Tagi_V'])  
-
-
-out1 = Parallel(n_jobs=-1)(delayed(powerMinusERP)(sub,ids)
-                    for sub, ids in group_1_prod)
-
-Group1 = [r[0] for r in out1]
-G1 = [r[1] for r in out1]
-
-print("Group1 DONE")
-
-out2 = Parallel(n_jobs=-1)(delayed(powerMinusERP)(sub,ids)
-                    for sub, ids in group_2_prod)
-
-Group2 = [r[0] for r in out2]
-G2 = [r[1] for r in out2]
-
-print("Group2 DONE")
-
-## Plot freq map to check for edge artefacts
-
-tfr_epochs = G1[0]
-
-X = [np.array(Group1), np.array(Group2)]
-
-sensor_adjacency, ch_names = mne.channels.find_ch_adjacency(tfr_epochs.info,"eeg")
-
-adjacency = mne.stats.combine_adjacency(sensor_adjacency, 
-                                        len(tfr_epochs.freqs), 
-                                        len(tfr_epochs.times))
-
-
-
-times_list = tfr_epochs.times
-freqs_list = tfr_epochs.freqs
-
-
-def permTestImp(X = X, thresh = 12, tail = 0, n_perm = 524):
+#-> X is the grouped data as it needs to be grouped in the mne.stats.permutation_cluster_test
+#-> tfr_epochs is an example epoch (Evoked object) that has been morlet transformed
+def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524):
     # X, Treshhold, tail, n_perm
+    times_list = tfr_epochs.times
+    freqs_list = tfr_epochs.freqs
+    
+    sensor_adjacency, ch_names = mne.channels.find_ch_adjacency(tfr_epochs.info,"eeg")
+
+    adjacency = mne.stats.combine_adjacency(sensor_adjacency, 
+                                            len(tfr_epochs.freqs), 
+                                            len(tfr_epochs.times))
     
     
     from scipy.stats import ttest_ind
@@ -170,36 +156,20 @@ def permTestImp(X = X, thresh = 12, tail = 0, n_perm = 524):
     return T_obs, clusters, cluster_p_values, H0
     
     
-T_obs, clusters, cluster_p_values, H0 = permTestImp(n_perm=100)
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-      
-    
-    
-    
 #https://mne.tools/stable/auto_tutorials/stats-sensor-space/75_cluster_ftest_spatiotemporal.html    
-
-
     
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+#tfr_epochs is an example epoch (Evoked object) that has been morlet transformed
+def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
+                 p_accept = 0.05, save = False, folder = None, ttype = "T"):
 
-def clustersPLot(p_acc = 0.05, save = False, fol = "none"):
-    
-    p_accept = p_acc
     
     F_obs, p_values = T_obs, cluster_p_values
-    freqs = freqs_list
+    #F is used in the framework as a default
+    #However, we use t-test for our permutation test
+    freqs = tfr_epochs.freqs
     
     
     good_cluster_inds = np.where(p_values < p_accept)[0]
@@ -223,8 +193,11 @@ def clustersPLot(p_acc = 0.05, save = False, fol = "none"):
         sig_times = tfr_epochs.times[time_inds]
     
         # Initialize MAIN figure and subfigure
-        fig_main = plt.figure(constrained_layout=True, figsize=(10, 8)) # 
-        subfigs = fig_main.subfigures(2, 1) #, wspace=0.07
+        fig_main = plt.figure(constrained_layout=True, figsize=(10, 8)) #
+        try:
+            subfigs = fig_main.subfigures(2, 1) #, wspace=0.07
+        except:
+            raise Exception("Probably a VERSION ERROR \n Need matplotlib v3.4 or higher for subfigures")
         ax_topo = subfigs[0].subplots(1, 1) ##fig,   ->   , figsize=(10, 6)
     
         # create spatial mask
@@ -245,7 +218,7 @@ def clustersPLot(p_acc = 0.05, save = False, fol = "none"):
         ax_colorbar = divider.append_axes('right', size='5%', pad=0.05)
         plt.colorbar(image, cax=ax_colorbar)
         ax_topo.set_xlabel(
-            'Averaged F-map ({:0.3f} - {:0.3f} s)'.format(*sig_times[[0, -1]]))
+            f"Averaged {ttype}-map"+' ({:0.3f} - {:0.3f} s)'.format(*sig_times[[0, -1]]))
     
         # add new axis for spectrogram
         ax_spec = divider.append_axes('right', size='300%', pad=1.2)
@@ -314,7 +287,7 @@ def clustersPLot(p_acc = 0.05, save = False, fol = "none"):
                     + ".png")
 
 import os
-def saving(name = "None"):
+def saving(name = "None", thresh = None): #TODO: Update to fit with structure
     wd = os.getcwd()
     
     if name == "None":
@@ -328,31 +301,48 @@ def saving(name = "None"):
         #os.ch_wrd(f"plots//{folder_name}")
         os.mkdir(wd + "\\plots\\" + folder_name)
         os.chdir(wd + "\\plots\\" + folder_name)
-        clustersPLot(p_acc = p_acc, save = True)
+        clustersPlot(p_acc = p_acc, save = True)
     
     os.chdir(wd)
-   
+
+##############
+####      ####
+##   MAIN   ##
+####      ####
+##############
+
+#For the N1/P2 dataset, between-subjects differences (SM vs. NSM) were tested 
+#for each conidition (AV Congruent, AV Incongruent, Auditory, Visual), 
+#and for the average of both AVconditions. Subsequently
 
 save = False
 plot = True
 p_acc = 0.1
 
-if plot and __name__ == "__main__":
-    clustersPLot(p_acc = p_acc)
+#['Tabi_A_Tabi_V','Tagi_A_Tabi_V'] + ['Tagi_A_Tagi_V', 'Tabi_A_Tagi_V']
+if __name__ == "__main__":
+    
+    ##
+    G1_ids = ['Tabi_A_Tabi_V','Tagi_A_Tabi_V'] + ['Tagi_A_Tagi_V', 'Tabi_A_Tagi_V']
+    G2_ids = G1_ids
+    
+    G1_subgroup = Speech
+    G2_subgroup = Non_speech
+    ##
+    
+    X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs)
+        
+    T_obs, clusters, cluster_p_values, H0 = permTestImpT(X, tfr_epochs, n_perm=100)
+    
+    if plot:
+        clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs, p_accept= p_acc)
 
+    ###For saving plots###
+    #run just this part after viewing
+    if save:
+        saving() #TODO: Implement to fit inside cliustersPlot
+        
 
-
-###For saving plots###
-#run just this part after viewing
-if save:
-    saving()
-        
-        
-        
-        
-        
-        
-        
         
 ##
     
