@@ -321,6 +321,10 @@ p_acc = 0.1
 
 #['Tabi_A_Tabi_V','Tagi_A_Tabi_V'] + ['Tagi_A_Tagi_V', 'Tabi_A_Tagi_V']
 if __name__ == "__main__":
+    #NB!: Everything is multithreaded, so it will have a large impact on 
+    # less powerful systems.
+    
+    #ALSO: need matplotliv v3.4 to plot
     
     ##
     G1_ids = ['Tabi_A_Tabi_V','Tagi_A_Tabi_V'] + ['Tagi_A_Tagi_V', 'Tabi_A_Tagi_V']
