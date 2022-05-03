@@ -6,42 +6,20 @@ import time as time
 import copy as copy
 from scipy.io import loadmat
 
-directory = 'Data'
-os.chdir(directory) # Change working directory
-
-# -------------------------- LOAD ONE SUBJECT ------------------------------ #
-"""
-file = loadmat('AR47787.mat') # Raw file (dictionary) of one subject
-trialtable = file['trialtable']
-rej_idx = file['rej_idx']
-data = file['data'] 
-trials = data['trial'][0,0] # Shape is (1, 1779)
-
-
-
-# Load data using RawArray from MNE toolbox 
-for i in range(1779):
-    trial_data = trials[0, i] * 10**(-6) # Convert values from microvolt to volt 
-    
-    info = mne.create_info(ch_names, sfreq, ch_types = 'eeg') # MNE Info object
-    rawArray = mne.io.RawArray(trial_data, info, first_samp = 0.58) # MNE RawArray object 
-
-# Load data using EpochsArray from MNE toolbox 
-allData = []
-
-for i in range(1804): # Loop over number of trials 
-    trial_data = trials[0, i] * 10**(-6) # Convert values from microvolt to volt 
-    allData.append(trial_data)
-
-allData = np.array(allData)
-    
-info = mne.create_info(ch_names, sfreq, ch_types = 'eeg') # MNE Info object
-epochsArray = mne.EpochsArray(allData, info, tmin = -0.58) # MNE EpochsArray object 
-"""
+# Get current working directory
+workingDirectory = os.getcwd()
 
 # --------------------------------- IDs ------------------------------------ #
+# Set working directory to 'Data' folder 
+directory = 'Data'
+os.chdir(directory)
 
 # Subject IDs (from allEpochs.keys())
+subjectIDs = ['AM50127', 'AR47787', 'BJ50955', 'CJ47960', 'FR44603',
+              'GL49490', 'HC41216', 'HD48764', 'KA48601', 'KN46410',
+              'KS49673', 'MA48066', 'ME45959', 'PC49059', 'RP51494',
+              'SC46392', 'SC47790', 'SS40788', 'ST48974', 'WM45269']
+
 # dict_keys(['AM50127', 'AR47787', 'BJ50955', 'CJ47960', 'FR44603', 'GL49490', 
 # 'HC41216', 'HD48764', 'KA48601', 'KN46410', 'KS49673', 'MA48066', 'ME45959', 
 # 'PC49059', 'RP51494', 'SC46392', 'SC47790', 'SS40788', 'ST48974', 'WM45269'])
@@ -51,32 +29,6 @@ ch_names = [f"E{i}" for i in range(1,127)]
 
 # Sampling freqency
 sfreq = 250 
-
-# Event IDs 
-eventIDs = { 'V_b_high' : 1, 
-             'V_b_mid'  : 2, 
-             'V_b_low'  : 3,
-             'V_g_high' : 4, 
-             'V_g_mid'  : 5, 
-             'V_g_low'  : 6,
-             'A_b_high' : 7,
-             'A_b_mid'  : 8, 
-             'A_b_low'  : 9,
-             'A_g_high' : 10,
-             'A_g_mid'  : 11, 
-             'A_g_low'  : 12,
-             'AV_b_high': 13, 
-             'AV_b_mid' : 14,
-             'AV_b_low' : 15,
-             'AV_g_high': 16, 
-             'AV_g_mid' : 17,
-             'AV_g_low' : 18,
-             'AV_bg_high' : 19,
-             'AV_bg_mid'  : 20,
-             'AV_bg_low'  : 21,
-             'AV_async_high' : 22,   # Remove !!
-             'AV_async_mid'  : 23,   # Remove !!
-             'AV_async_low'  : 24  } # Remove !!
 
 # Dictionary of events (link: https://mne.tools/dev/auto_tutorials/raw/20_event_arrays.html)
 event_dict = { 'visual/b/high' : 1, 
@@ -150,7 +102,7 @@ for subjectID in allFiles:
     allEpochs[subjectID[:-4]] = subjectEpoch # Add to allEpochs dictionary 
     
 
-# --------------------------- SENSOR POSITIONS ----------------------------- #
+# ---------------------- SENSOR POSITIONS (& PLOTS) ------------------------ #
 
 # Set sensor positions according to GSN HydroCel cap with 128 channels
 HydroCel = mne.channels.make_standard_montage('GSN-HydroCel-128')
@@ -165,13 +117,19 @@ for subject in allEpochs.keys():
 # Plot ERP 
 # allEpochs['KA48601'].copy().pick(ch_names[100:103]).average().plot()
 
+# Plot specific conditions 
+# allEpochs['KA48601']['visual/b']
+# allEpochs['KA48601'][['visual/b', 'auditory/b']]
+# allEpochs['KA48601']['visual/b'].copy().pick(ch_names[0:5]).average().plot()
+
 # -------------------------------- TO DO ----------------------------------- #
 
 # TO-DO:
 # Create montage / sensor positions --DONE
 # Create dictionary of events and implement in epochsArray object --DONE
-# Creat event_id dictionary and implement in epochsArray object --TO DO
-# Average over all subjects and plot ERP --TO DO
+# Creat event_id dictionary and implement in epochsArray object --DONE
+# Average over all subjects and plot ERP --TO DO 
 # Remove last three events (AV fusion, asynchronous 22:24)
 
-
+# Change back to working directory (not in the 'Data' folder)
+os.chdir(workingDirectory)
