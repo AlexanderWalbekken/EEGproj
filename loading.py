@@ -52,9 +52,9 @@ event_dict = { 'visual/b/high' : 1,
                'audiovisual/bg/high' : 19,
                'audiovisual/bg/med'  : 20,
                'audiovisual/bg/low'  : 21,
-               'audiovisual/async/high' : 22,   # Remove !!
-               'audiovisual/async/med'  : 23,   # Remove !!
-               'audiovisual/async/low'  : 24  } # Remove !!
+               'NA1'                  : 22,   # Remove !!
+               'NA2'                  : 23,   # Remove !!
+               'NA3'                  : 24  } # Remove !!
      
 # --------------------------- LOAD ALL SUBJECTS ---------------------------- #
 
@@ -122,6 +122,25 @@ for subject in allEpochs.keys():
 # allEpochs['KA48601'][['visual/b', 'auditory/b']]
 # allEpochs['KA48601']['visual/b'].copy().pick(ch_names[0:5]).average().plot()
 
+# Average over all subjects 
+allEvoked = []
+allEvokedAV = []
+weights = list(np.ones(20))
+
+for subject in allEpochs.keys():
+    allEvoked.append(allEpochs[subject].average())
+    allEvokedAV.append(allEpochs[subject]['audiovisual'].average())
+
+combineEvoked = mne.combine_evoked(allEvoked, weights)
+combineEvokedAV = mne.combine_evoked(allEvokedAV, weights)
+
+# Plot ERP over all subjects
+# combineEvoked.copy().pick(ch_names[0:10]).plot_joint()
+# combineEvokedAV.copy().pick(ch_names[0:20]).plot_joint()
+
+# Plot ERP over all subjects for 'audiovisual' conditions
+# combineEvokedAV.copy().plot_joint()
+
 # -------------------------------- TO DO ----------------------------------- #
 
 # TO-DO:
@@ -130,6 +149,10 @@ for subject in allEpochs.keys():
 # Creat event_id dictionary and implement in epochsArray object --DONE
 # Average over all subjects and plot ERP --TO DO 
 # Remove last three events (AV fusion, asynchronous 22:24)
+
+# Replicate the behavioural precision graph (Figure 2, p. 9 in Study 4 Appendix) --TO DO 
+# For the incongruent AV condition, the correct response is the spoken letter 
+# Access subject responses for a given subject as: subjectFile['trialtable'][:, 2]
 
 # Change back to working directory (not in the 'Data' folder)
 os.chdir(workingDirectory)
