@@ -7,7 +7,7 @@ from joblib import Parallel, delayed
 import itertools as it
 
 #TODO: Fix file name of import
-from permutation_test_computing_groups_different_groups import createGroupsFreq, permTestImpT, clustersPlot
+from main_perm_test import createGroupsFreq, permTestImpT, clustersPlot
 
 
 ##
