@@ -5,16 +5,11 @@ Created on Tue Mar 29 12:57:02 2022
 @author: alexa
 """
 
-#Split non_speech and speech
-
 import numpy as np
-
 import mne
 
-#from pre import Event_ids, direct, list_files, common
 from files_info_Study2 import Speech, Non_speech
 
-#from Find_bads_and_interpolate import All_epochs, all_channels
 from joblib import Parallel, delayed
 import itertools as it
 
@@ -249,7 +244,7 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         plt.colorbar(c, cax=ax_colorbar2)
         ax_colorbar2.set_ylabel('F-stat')
     
-        # clean up viz
+        # clean up viz [Has trouble working with subfigures]
         #mne.viz.tight_layout(fig=subfigs[0])
         #fig.subplots_adjust(bottom=.05)
         
@@ -286,6 +281,11 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
             import os
             wd = os.getcwd()
             
+            # Creating plots folder if it doesnt exist
+            if not os.path.exists(wd + "\\plots"):
+                os.mkdir(wd + "\\plots")
+            
+            # Using datetime to name folder, if not spesified (should rather be spesified)
             if folder == None:
                 import datetime
                 folder_name = datetime.datetime.now()
@@ -294,7 +294,7 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
                 
             curr_path = wd + "\\plots\\" + folder_name
             exists = os.path.exists(curr_path)
-            print(exists)
+            #print(exists)
             if not exists:
                 os.mkdir(curr_path)
             os.chdir(curr_path) #CHANGING!
@@ -303,6 +303,7 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
             percnt_p = (p_values_good[i_clu] * 100)
             n_clu = i_clu+1
             
+            # Saving file with cluster information as name
             plt.savefig(f"clu{ n_clu }_p{percnt_p :.2f}%_max_{n_chan}chan" +
                         "(t="+"{:0.2f}-{:0.2f})".format(*sig_times[[0, -1]])
                     + ".png")
@@ -310,24 +311,6 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
             
             os.chdir(wd) #CHANGING BACK!
 
-"""
-def saving(name = None, thresh = None): #TODO: Update to fit with structure
-    wd = os.getcwd()
-    
-    if name == None:
-        inp1 = ""
-    else:
-        inp1 = name
-    
-    if inp1.lower() != "no":
-        folder_name = inp1 + f"Tresh{thresh}_"
-        #import os as os
-        #os.ch_wrd(f"plots//{folder_name}")
-        os.mkdir(wd + "\\plots\\" + folder_name)
-        os.chdir(wd + "\\plots\\" + folder_name)
-        clustersPlot(p_acc = p_acc, save = True)
-    
-    os.chdir(wd)"""
 
 ##############
 ####      ####
@@ -356,6 +339,8 @@ if __name__ == "__main__":
     
     G1_subgroup = Speech
     G2_subgroup = Non_speech
+    
+    from Find_bads_and_interpolate import All_epochs, all_channels
     ##
     
     X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs)
