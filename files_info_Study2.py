@@ -6,16 +6,14 @@ Created on Mon Mar 14 14:15:44 2022
 """
 import os as os
 
-import mne
-import matplotlib.pyplot as plt
-import numpy as np
+
+# The directory containing the preprocessed data
+direct = "pipeline_data\\data_preproc"
 
 #Default stuff
 
 Event_ids =  ["Tagi_A", "Tagi_A_Tabi_V", "Tagi_V", "Tabi_V", 
               "Tagi_A_Tagi_V", "Tabi_A", "Tabi_A_Tagi_V", "Tabi_A_Tabi_V"]
-
-direct = "pipeline_data\\data_preproc"
 
 list_files = [i for i in os.listdir(direct) if i[-4:] == ".set"]
 
@@ -32,11 +30,4 @@ common = ['AF4', 'AFz', 'C1', 'C2', 'C3', 'C4', 'CP1', 'CP2', 'CP3', 'CP4',
 
 Speech_files = [ i + "_4adj.set" for i in Speech]
 Non_speech_files = [i + "_4adj.set" for i in Non_speech]
-# Test commit 
-# Test 4 M
 
-
-
-# Test commit 2
-
-# Test commit 3

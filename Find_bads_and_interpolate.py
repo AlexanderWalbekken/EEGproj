@@ -8,7 +8,7 @@ Created on Wed Mar 16 13:36:38 2022
 import mne
 import os
 import numpy as np
-from pre import Event_ids, direct, list_files, Speech, Non_speech, common
+from files_info_Study2 import Event_ids, direct, list_files, Speech, Non_speech, common
 import copy
 
 

@@ -5,16 +5,11 @@ Created on Tue Mar 29 12:57:02 2022
 @author: alexa
 """
 
-#Split non_speech and speech
-
 import numpy as np
-
 import mne
 
-#from pre import Event_ids, direct, list_files, common
-from pre import Speech, Non_speech
+from files_info_Study2 import Speech, Non_speech
 
-#from Find_bads_and_interpolate import All_epochs, all_channels
 from joblib import Parallel, delayed
 import itertools as it
 
@@ -91,7 +86,7 @@ def createGroupsFreq(subgroups, e_ids, All_epochs):
 
 #-> X is the grouped data as it needs to be grouped in the mne.stats.permutation_cluster_test
 #-> tfr_epochs is an example epoch (Evoked object) that has been morlet transformed
-def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524):
+def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T"):
     # X, Treshhold, tail, n_perm
     times_list = tfr_epochs.times
     freqs_list = tfr_epochs.freqs
@@ -110,36 +105,36 @@ def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524):
 
         return t
     
+    if ttype == "F":
+         testFun = None
+    
     # just try increasing the n_jobs number
     # import joblib #i want it to run in paralell more, but i am not well versed in joblib
     T_obs, clusters, cluster_p_values, H0 = mne.stats.permutation_cluster_test(X, 
                                        threshold=thresh, tail=tail, #correct tail
                                        n_permutations= n_perm, adjacency = adjacency,
-                                       n_jobs = -1)
+                                       n_jobs = -1, 
+                                       stat_fun = testFun)
     
     
     
     #stat_fun endre til t fra scipy remove the p
-    
-    print(cluster_p_values[cluster_p_values < 0.999999])
-    
-    print(min(cluster_p_values))
-    min_p_indx = np.argmin(cluster_p_values)
-    clust_min = clusters[min_p_indx]
-    
-    
-    # We can use the non subtractred (ERP) adn see if the clusters ther make sense
-    
-    
-    ########
-    #Computing quantile?
-    ## Assuming the test statistic observed is the first (same between different tests)
-    obs_H0 = H0[0]
-    
-    #quanile of the test statistic
-    quantil = (H0<obs_H0).mean()
 
     if __name__ == "__main__":
+        print(cluster_p_values[cluster_p_values < 0.999999])
+    
+        print(min(cluster_p_values))
+        min_p_indx = np.argmin(cluster_p_values)
+        
+        # We can use the non subtractred (ERP) adn see if the clusters ther make sense
+        
+        ########
+        #Computing quantile?
+        ## Assuming the test statistic observed is the first (same between different tests)
+        obs_H0 = H0[0]
+        
+        #quanile of the test statistic
+        quantil = (H0<obs_H0).mean()
         print(1-quantil)
             
         def infoCluster(clust):
@@ -163,7 +158,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 #tfr_epochs is an example epoch (Evoked object) that has been morlet transformed
 def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
-                 p_accept = 0.05, save = False, folder = None, ttype = "T"):
+                 p_accept = 0.05, save = False, folder = None, ttype = "T", show = True):
 
     
     F_obs, p_values = T_obs, cluster_p_values
@@ -249,7 +244,7 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         plt.colorbar(c, cax=ax_colorbar2)
         ax_colorbar2.set_ylabel('F-stat')
     
-        # clean up viz
+        # clean up viz [Has trouble working with subfigures]
         #mne.viz.tight_layout(fig=subfigs[0])
         #fig.subplots_adjust(bottom=.05)
         
@@ -279,31 +274,43 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
                               vmin=np.min, vmax=np.max, show=False,
                               colorbar=False, mask_params=dict(markersize=10))
         
-        plt.show(block = False) #False in Spyder, True in VS-code for now...
+        if show:
+            plt.show(block = False) #False in Spyder, True in VS-code for now...
         
         if save:
-            plt.savefig(f"clu{i_clu+1}_p{p_values_good[i_clu] :.3f}_time" +
-                    "{:0.2f} - {:0.2f} s)".format(*sig_times[[0, -1]])
+            import os
+            wd = os.getcwd()
+            
+            # Creating plots folder if it doesnt exist
+            if not os.path.exists(wd + "\\plots"):
+                os.mkdir(wd + "\\plots")
+            
+            # Using datetime to name folder, if not spesified (should rather be spesified)
+            if folder == None:
+                import datetime
+                folder_name = datetime.datetime.now()
+            else:
+                folder_name = folder
+                
+            curr_path = wd + "\\plots\\" + folder_name
+            exists = os.path.exists(curr_path)
+            #print(exists)
+            if not exists:
+                os.mkdir(curr_path)
+            os.chdir(curr_path) #CHANGING!
+            
+            n_chan = len(ch_inds)
+            percnt_p = (p_values_good[i_clu] * 100)
+            n_clu = i_clu+1
+            
+            # Saving file with cluster information as name
+            plt.savefig(f"clu{ n_clu }_p{percnt_p :.2f}%_max_{n_chan}chan" +
+                        "(t="+"{:0.2f}-{:0.2f})".format(*sig_times[[0, -1]])
                     + ".png")
+            
+            
+            os.chdir(wd) #CHANGING BACK!
 
-import os
-def saving(name = "None", thresh = None): #TODO: Update to fit with structure
-    wd = os.getcwd()
-    
-    if name == "None":
-        inp1 = input("Save? ('No' or foldername)")
-    else:
-        inp1 = name
-    
-    if inp1.lower() != "no":
-        folder_name = f"Tresh{thresh}_" + inp1
-        #import os as os
-        #os.ch_wrd(f"plots//{folder_name}")
-        os.mkdir(wd + "\\plots\\" + folder_name)
-        os.chdir(wd + "\\plots\\" + folder_name)
-        clustersPlot(p_acc = p_acc, save = True)
-    
-    os.chdir(wd)
 
 ##############
 ####      ####
@@ -332,6 +339,8 @@ if __name__ == "__main__":
     
     G1_subgroup = Speech
     G2_subgroup = Non_speech
+    
+    from Find_bads_and_interpolate import All_epochs, all_channels
     ##
     
     X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs)
@@ -341,10 +350,6 @@ if __name__ == "__main__":
     if plot:
         clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs, p_accept= p_acc)
 
-    ###For saving plots###
-    #run just this part after viewing
-    if save:
-        saving() #TODO: Implement to fit inside cliustersPlot
         
 
         
