@@ -86,7 +86,7 @@ def createGroupsFreq(subgroups, e_ids, All_epochs):
 
 #-> X is the grouped data as it needs to be grouped in the mne.stats.permutation_cluster_test
 #-> tfr_epochs is an example epoch (Evoked object) that has been morlet transformed
-def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T"):
+def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T", seed = None):
     # X, Treshhold, tail, n_perm
     times_list = tfr_epochs.times
     freqs_list = tfr_epochs.freqs
@@ -113,7 +113,7 @@ def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T"
     T_obs, clusters, cluster_p_values, H0 = mne.stats.permutation_cluster_test(X, 
                                        threshold=thresh, tail=tail, #correct tail
                                        n_permutations= n_perm, adjacency = adjacency,
-                                       n_jobs = -1, 
+                                       n_jobs = -1, seed = seed,
                                        stat_fun = testFun)
     
     
@@ -158,7 +158,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 #tfr_epochs is an example epoch (Evoked object) that has been morlet transformed
 def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
-                 p_accept = 0.05, save = False, folder = None, ttype = "T", show = True):
+                 p_accept = 0.05, save = False, folder = None, ttype = "T", show = True, min_ch_num = None):
 
     
     F_obs, p_values = T_obs, cluster_p_values
@@ -179,6 +179,11 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         ch_inds = np.unique(space_inds)
         time_inds = np.unique(time_inds_all)
         freq_inds = np.unique(freq_inds_all)
+        
+        # Checking minimun channels before plotting
+        if not min_ch_num == None:
+            if len(ch_inds) < min_ch_num:
+                continue #skipping cluster if not enough channels
     
         # get topography for F stat
         f_map_total = F_obs[:, freq_inds, :].mean(axis=1)
