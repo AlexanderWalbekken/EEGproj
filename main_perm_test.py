@@ -17,7 +17,8 @@ import itertools as it
 #All_epochs are all the subjects providede as a dictionary
 #subgroups [keys1,keys2], where keys* are then lists(or array) of the keys to be used in the groups
 #e_ids is a list [ids1,ids2], where ids* are list of the event ids to use for each group
-def createGroupsFreq(subgroups, e_ids, All_epochs):
+def createGroupsFreq(subgroups, e_ids, All_epochs, baseline = [-0.5,-0.2], 
+                     freq_vars = {"freqs":np.arange(4, 38, 2), "n_cycles": 5}):
 
     # Dividing into two groups
     Group1 = []
@@ -27,15 +28,16 @@ def createGroupsFreq(subgroups, e_ids, All_epochs):
     G2 = []
     
     
-    def powerMinusERP(subject,id_in, All_epochs = All_epochs):
+    def powerMinusERP(subject,id_in, All_epochs = All_epochs, baseline = baseline):
         # --Freq variables--
-        frequencies = np.arange(4, 38, 2)
-        n_cycles_morlet = 5 #2
+        frequencies = freq_vars["freqs"] #np.arange(4, 38, 2)
+        n_cycles_morlet = freq_vars["n_cycles"]  #5 #2
         decim_morlet = 3
     
         spe = subject
         ids = id_in
         
+        bas = baseline
         
         epochs = All_epochs[spe]
         ep_avg = epochs[ids].average()
@@ -48,7 +50,7 @@ def createGroupsFreq(subgroups, e_ids, All_epochs):
         ## TODO: Plot freq map again to re-check for edge artefacts
         #change crop to 0.
         
-        power = power.apply_baseline(mode="logratio", baseline = (-0.5,-0.2)).crop(-0.95,0.95)
+        power = power.apply_baseline(mode="logratio", baseline = (bas[0],bas[1]))#.crop(-0.95,0.95)
         
         return [power.data, power]
     
