@@ -97,49 +97,75 @@ for subjectID in allFiles:
     subjectEvents = np.hstack((subjectEventOnset, zeros, ids)).astype(int) # Shape: (#trials, 3)
     subjectData = np.array(subjectData) # Shape: (#trials, #channels, #timepoints)
     
+    
     # Create EpochsArray and add to dictionary
     subjectEpoch = mne.EpochsArray(subjectData, subjectInfo, events = subjectEvents, event_id = event_dict, tmin = -0.52) # MNE EpochsArray object
+    subjectEpoch = subjectEpoch.crop(0.4, 1) # Crop from 0.4 - 1 second
     allEpochs[subjectID[:-4]] = subjectEpoch # Add to allEpochs dictionary 
     
 
-# ---------------------- SENSOR POSITIONS (& PLOTS) ------------------------ #
+# -------------------------- SENSOR POSITIONS --------------------------- #
 
 # Set sensor positions according to GSN HydroCel cap with 128 channels
 HydroCel = mne.channels.make_standard_montage('GSN-HydroCel-128')
 
 for subject in allEpochs.keys():
     allEpochs[subject].set_montage(HydroCel)
+    
+# ------------------------- ERP, EVOKED & PLOTS ------------------------- #
 
-# Plot sensor positions
-# allEpochs['KA48601'].plot_sensors()
-# allEpochs['KA48601'].plot_sensors(kind = '3d', show_names = True)
-
-# Plot ERP 
-# allEpochs['KA48601'].copy().pick(ch_names[100:103]).average().plot()
-
-# Plot specific conditions 
-# allEpochs['KA48601']['visual/b']
-# allEpochs['KA48601'][['visual/b', 'auditory/b']]
-# allEpochs['KA48601']['visual/b'].copy().pick(ch_names[0:5]).average().plot()
-
-# Average over all subjects 
-allEvoked = []
-allEvokedAV = []
-weights = list(np.ones(20))
-
-for subject in allEpochs.keys():
-    allEvoked.append(allEpochs[subject].average())
-    allEvokedAV.append(allEpochs[subject]['audiovisual'].average())
-
-combineEvoked = mne.combine_evoked(allEvoked, weights)
-combineEvokedAV = mne.combine_evoked(allEvokedAV, weights)
-
-# Plot ERP over all subjects
-# combineEvoked.copy().pick(ch_names[0:10]).plot_joint()
-# combineEvokedAV.copy().pick(ch_names[0:20]).plot_joint()
-
-# Plot ERP over all subjects for 'audiovisual' conditions
-# combineEvokedAV.copy().plot_joint()
+if __name__ == "__main__":
+    # Plot sensor positions
+    # allEpochs['KA48601'].plot_sensors()
+    # allEpochs['KA48601'].plot_sensors(kind = '3d', show_names = True)
+    
+    # Plot specific conditions 
+    # allEpochs['KA48601']['visual/b']
+    # allEpochs['KA48601'][['visual/b', 'auditory/b']]
+    # allEpochs['KA48601']['visual/b'].copy().pick(ch_names[0:5]).average().plot()
+    
+    # Plot ERP 
+    # allEpochs['KA48601'].copy().pick(ch_names[100:103]).average().plot()
+    
+    # Average over all subjects 
+    allEvoked = []
+    allEvokedAV = []
+    weights = list(np.ones(20))
+    
+    for subject in allEpochs.keys():
+        allEvoked.append(allEpochs[subject].average())
+        allEvokedAV.append(allEpochs[subject]['audiovisual'].average())
+    
+    combineEvoked = mne.combine_evoked(allEvoked, weights) # All conditions
+    combineEvokedAV = mne.combine_evoked(allEvokedAV, weights) # Audiovisual conditions
+    
+    # Plot ERP over all subjects
+    # combineEvoked.copy().pick(ch_names[0:10]).plot_joint()
+    # combineEvokedAV.copy().pick(ch_names[0:20]).plot_joint()
+    # combineEvokedAV.copy().pick(ch_names[0:20]).crop(0, 1.5).plot_joint()
+    
+    # Plot ERP over all subjects for 'audiovisual' conditions
+    # combineEvokedAV.copy().plot_joint()
+    
+    # Subtracting the ERP 
+    frequencies = np.arange(4, 38, 2)
+    n_cycles_morlet = 5 #2
+    decim_morlet = 3
+    
+    spe = 'KA48601'
+    ids = 'audiovisual'
+    
+    epochs = allEpochs[spe]
+    ep_avg = epochs[ids].average()
+    
+    ep_done = epochs[ids].copy().subtract_evoked(ep_avg)
+    
+    """
+    power = mne.time_frequency.tfr_morlet(ep_done, n_cycles=n_cycles_morlet, 
+                                              return_itc=False,
+                                              freqs=frequencies, 
+                                              decim=decim_morlet) # .crop(-0.95,0.95)
+    """
 
 # -------------------------------- TO DO ----------------------------------- #
 
