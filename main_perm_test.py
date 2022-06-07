@@ -28,7 +28,7 @@ def createGroupsFreq(subgroups, e_ids, All_epochs, baseline = [-0.5,-0.2],
     G2 = []
     
     
-    def powerMinusERP(subject,id_in, All_epochs = All_epochs, baseline = baseline):
+    def powerMinusERP(subject,id_in, All_epochs = All_epochs, baseline = baseline, crop_post = None, crop_pre = None):
         # --Freq variables--
         frequencies = freq_vars["freqs"] #np.arange(4, 38, 2)
         n_cycles_morlet = freq_vars["n_cycles"]  #5 #2
@@ -38,9 +38,11 @@ def createGroupsFreq(subgroups, e_ids, All_epochs, baseline = [-0.5,-0.2],
         ids = id_in
         
         bas = baseline
-        
-        epochs = All_epochs[spe]
-        ep_avg = epochs[ids].average()
+        if crop_pre == None:
+            epochs = All_epochs[spe]
+        else:
+            epochs = All_epochs[spe].crop(crop_pre[0],crop_pre[1])
+        ep_avg = epochs[ids].copy().average()
         
         ep_done = epochs[ids].copy().subtract_evoked(ep_avg)
         power = mne.time_frequency.tfr_morlet(ep_done, n_cycles=n_cycles_morlet, 
@@ -51,6 +53,8 @@ def createGroupsFreq(subgroups, e_ids, All_epochs, baseline = [-0.5,-0.2],
         #change crop to 0.
         
         power = power.apply_baseline(mode="logratio", baseline = (bas[0],bas[1]))#.crop(-0.95,0.95)
+        if crop_post != None:
+            power = power.crop(crop_post[0],crop_post[1])
         
         return [power.data, power]
     
@@ -88,7 +92,7 @@ def createGroupsFreq(subgroups, e_ids, All_epochs, baseline = [-0.5,-0.2],
 
 #-> X is the grouped data as it needs to be grouped in the mne.stats.permutation_cluster_test
 #-> tfr_epochs is an example epoch (Evoked object) that has been morlet transformed
-def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T", seed = None):
+def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T", seed = None, num_categories = None):
     # X, Treshhold, tail, n_perm
     times_list = tfr_epochs.times
     freqs_list = tfr_epochs.freqs
@@ -99,16 +103,34 @@ def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T"
                                             len(tfr_epochs.freqs), 
                                             len(tfr_epochs.times))
     
-    
-    from scipy.stats import ttest_ind
-    def testFun(*args):
-        a, b = args
-        t, _ = ttest_ind(a,b)
+    if ttype == "correlation":
+        import statsmodels.api as sm
+        def testFun(*args):
+            if num_categories == None:
+                num_categories = list(range(1,2+len(args)))
+            
+            X_arr = np.hstack([num_categories[i]*np.ones(args[i]) for i in range(len(num_categories))])
+            
+            Y_arr = np.hstack([arr for arr in args])
+            
+            model = sm.OLS(Y_arr,X_arr)
 
-        return t
-    
-    if ttype == "F":
+            results = model.fit()
+            slope = results.params
+            t_vals = results.tvalues
+            
+            return t_vals
+        
+    elif ttype == "F":
          testFun = None
+    else:
+    
+        from scipy.stats import ttest_ind
+        def testFun(*args):
+            a, b = args
+            t, _ = ttest_ind(a,b)
+
+            return t
     
     # just try increasing the n_jobs number
     # import joblib #i want it to run in paralell more, but i am not well versed in joblib
@@ -116,13 +138,13 @@ def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T"
                                        threshold=thresh, tail=tail, #correct tail
                                        n_permutations= n_perm, adjacency = adjacency,
                                        n_jobs = -1, seed = seed,
-                                       stat_fun = testFun)
+                                       stat_fun = testFun, buffer_size=None) #changed buffer size to try and debug
     
     
     
     #stat_fun endre til t fra scipy remove the p
 
-    if __name__ == "__main__":
+    if __name__ == "__main__" and False:
         print(cluster_p_values[cluster_p_values < 0.999999])
     
         print(min(cluster_p_values))
@@ -352,7 +374,7 @@ if __name__ == "__main__":
     
     X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs)
         
-    T_obs, clusters, cluster_p_values, H0 = permTestImpT(X, tfr_epochs, n_perm=100)
+    T_obs, clusters, cluster_p_values, H0 = permTestImpT(X, tfr_epochs, n_perm=23)
     
     if plot:
         clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs, p_accept= p_acc)

@@ -41,6 +41,7 @@ for i, loop_tresh in enumerate(tresh_list):
     clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs, min_ch_num = 3, p_accept= p_acc, 
                  show=False, save = True, folder=f"Tresh{loop_tresh :.1f}_tail={loop_tail}" )
 
+
 import matplotlib.pyplot as plt
 plt.figure()
 plt.hist(H0,bins=1000)
