@@ -16,9 +16,9 @@ from main_perm_test import createGroupsFreq, permTestImpT, clustersPlot
 #DANGEROUS but getting error here
 
 ##
-tresh_list = [1.1,1.8,2.1,3.1,4.1]
-tail_list = [0,-1]
-per_perm_n = 400
+tresh_list = [1.8,2.1]
+tail_list = [0]
+per_perm_n = 200
 p_acc = 0.10
 ##
 

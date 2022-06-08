@@ -7,6 +7,7 @@ Created on Tue Mar 29 12:57:02 2022
 
 import numpy as np
 import mne
+from torch import layout
 
 from files_info_Study2 import Speech, Non_speech
 
@@ -48,21 +49,15 @@ def createGroupsFreq(subgroups, e_ids, All_epochs, baseline = [-0.5,-0.2],
         power = mne.time_frequency.tfr_morlet(ep_done, n_cycles=n_cycles_morlet, 
                                                   return_itc=False,
                                                   freqs=frequencies, 
-                                                  decim=decim_morlet)#.crop(-0.95,0.95)
-        ## TODO: Plot freq map again to re-check for edge artefacts
-        #change crop to 0.
+                                                  decim=decim_morlet)
         
-        power = power.apply_baseline(mode="logratio", baseline = (bas[0],bas[1]))#.crop(-0.95,0.95)
+        power = power.apply_baseline(mode="logratio", baseline = (bas[0],bas[1]))
         if crop_post != None:
             power = power.crop(crop_post[0],crop_post[1])
         
         return [power.data, power]
     
-    
-     #['Tabi_A_Tabi_V','Tagi_A_Tabi_V'] + ['Tagi_A_Tagi_V', 'Tabi_A_Tagi_V']
-     
-     #['Tabi_A_Tabi_V','Tagi_A_Tabi_V'] + ['Tagi_A_Tagi_V', 'Tabi_A_Tagi_V']
-    
+    #Creting the groups to compute
     group_1_prod = it.product(subgroups[0], e_ids[0])   
     group_2_prod = it.product(subgroups[1], e_ids[1])  
     
@@ -103,6 +98,8 @@ def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T"
                                             len(tfr_epochs.freqs), 
                                             len(tfr_epochs.times))
     
+    # Changing statistical function to use for each "point"
+    # Treshhold must be tailored to the given stat-funtion
     if ttype == "correlation":
         import statsmodels.api as sm
         def testFun(*args):
@@ -124,7 +121,6 @@ def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T"
     elif ttype == "F":
          testFun = None
     else:
-    
         from scipy.stats import ttest_ind
         def testFun(*args):
             a, b = args
@@ -132,17 +128,13 @@ def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T"
 
             return t
     
-    # just try increasing the n_jobs number
-    # import joblib #i want it to run in paralell more, but i am not well versed in joblib
+    # permittion test, runs in parallel
     T_obs, clusters, cluster_p_values, H0 = mne.stats.permutation_cluster_test(X, 
                                        threshold=thresh, tail=tail, #correct tail
                                        n_permutations= n_perm, adjacency = adjacency,
                                        n_jobs = -1, seed = seed,
                                        stat_fun = testFun, buffer_size=None) #changed buffer size to try and debug
     
-    
-    
-    #stat_fun endre til t fra scipy remove the p
 
     if __name__ == "__main__" and False:
         print(cluster_p_values[cluster_p_values < 0.999999])
@@ -182,7 +174,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 #tfr_epochs is an example epoch (Evoked object) that has been morlet transformed
 def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
-                 p_accept = 0.05, save = False, folder = None, ttype = "T", show = True, min_ch_num = None):
+                 p_accept = 0.05, save = False, folder = None, ttype = "T", show = True, min_ch_num = None, topo_dim = [2,4]):
 
     
     F_obs, p_values = T_obs, cluster_p_values
@@ -217,12 +209,15 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         sig_times = tfr_epochs.times[time_inds]
     
         # Initialize MAIN figure and subfigure
-        fig_main = plt.figure(constrained_layout=True, figsize=(10, 8)) #
+        plt.rcParams.update({'font.size': 8})
+        fig_main = plt.figure(constrained_layout=True, figsize=(10, 5))
         try:
-            subfigs = fig_main.subfigures(2, 1) #, wspace=0.07
+            subfigs = fig_main.subfigures(2, 1, hspace=0.1, #This fraction is not guaranteed to work with alll layouts
+                              height_ratios= [1.1/topo_dim[1],topo_dim[0]/topo_dim[1]]) #adjusting sizes also
         except:
             raise Exception("Probably a VERSION ERROR \n Need matplotlib v3.4 or higher for subfigures")
-        ax_topo = subfigs[0].subplots(1, 1) ##fig,   ->   , figsize=(10, 6)
+        
+        ax_topo = subfigs[0].subplots(1, 1)
     
         # create spatial mask
         mask = np.zeros((f_map.shape[0], 1), dtype=bool)
@@ -242,10 +237,14 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         ax_colorbar = divider.append_axes('right', size='5%', pad=0.05)
         plt.colorbar(image, cax=ax_colorbar)
         ax_topo.set_xlabel(
-            f"Averaged {ttype}-map"+' ({:0.3f} - {:0.3f} s)'.format(*sig_times[[0, -1]]))
-    
+            f"Avg. {ttype}-map"+' ({:0.3f} - {:0.3f} s)'.format(*sig_times[[0, -1]]))
+
+        #felxible spectrogram size
+        prct = ((topo_dim[1]-1)*100) + 60
+        sizeprct = str(prct) + "%"
+        
         # add new axis for spectrogram
-        ax_spec = divider.append_axes('right', size='300%', pad=1.2)
+        ax_spec = divider.append_axes('right', size=sizeprct, pad=1.2)
         #title = 'Cluster #{0}, {1} spectrogram'.format(i_clu + 1, len(ch_inds))
         title = f'{p_values_good[i_clu] :.3f} p-value, Cluster #{i_clu+1}, with {len(ch_inds)} channels'
         if len(ch_inds) > 1:
@@ -263,29 +262,48 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         for f_image, cmap in zip([F_obs_plot, F_obs_plot_sig], ['gray', 'autumn']):
             c = ax_spec.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
                                extent=[tfr_epochs.times[0], tfr_epochs.times[-1],
-                                       freqs[0], freqs[-1]])
-        ax_spec.set_xlabel('Time (ms)')
+                                       freqs[0], freqs[-1]+(freqs[-1] - freqs[-2])])
+        ax_spec.set_xlabel('Time (s)')
         ax_spec.set_ylabel('Frequency (Hz)')
         ax_spec.set_title(title)
+        
+        #fixing frequency ticks (attempt 1)
+        ##ax_spec.set_yticks(freqs)
+        #fixing frequency ticks (attempt 2)
+        
+        freq_step = (freqs[-1] - freqs[-2])
+        ax_spec.set_yticks(list(freqs))
+        ax_spec.set_yticklabels('')
+        ax_spec.set_yticks(freqs + (freq_step/2), minor=True)
+        
+        #This may be overkill just for the plot...
+        """
+        if len(freqs)//10 < 1:
+            ylabs = [str(f_l) for f_l in freqs]
+        else:"""
+        ratio = len(freqs)//10
+        ylabs = [str(freqs[j]) if j%(ratio+1) == 0 else '' for j in range(len(freqs))]
+        ax_spec.set_yticklabels(ylabs, minor=True)
+        
     
         # add another colorbar
         ax_colorbar2 = divider.append_axes('right', size='5%', pad=0.05)
         plt.colorbar(c, cax=ax_colorbar2)
-        ax_colorbar2.set_ylabel('F-stat')
+        ax_colorbar2.set_ylabel(f'{ttype}-stat')
     
         # clean up viz [Has trouble working with subfigures]
-        #mne.viz.tight_layout(fig=subfigs[0])
+        #mne.viz.tight_layout()
         #fig.subplots_adjust(bottom=.05)
         
         
         ####
         # Topografic vizualizations for different sample times
         ####
-        topo_num = 4
-        ax_snaps = subfigs[1].subplots(1,topo_num)
+        #topo_dim = [2,4] ## moved to arguments
+        ax_snaps = subfigs[1].subplots(topo_dim[0],topo_dim[1])
+        ax_snaps_flat = ax_snaps.flat
         
-        
-        snap_inds = np.linspace(0, (len(time_inds)-1),num = topo_num, dtype="int")
+        snap_inds = np.linspace(0, (len(time_inds)-1),num = (topo_dim[0]*topo_dim[1]), dtype="int")
         for i, snap_shot in enumerate(time_inds[snap_inds]):
             f_map = f_map_total[:,snap_shot] #.mean(axis=1) #Assume the meam isn not needed for one time
             
@@ -299,7 +317,7 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
             t_s = tfr_epochs.times[snap_shot] #TODO: DOuble check this is completly accurate
         
             f_evoked = mne.EvokedArray(f_map[:, np.newaxis], tfr_epochs.info, tmin=t_s)
-            f_evoked.plot_topomap(times=t_s, mask=mask, axes=ax_snaps[i], cmap='Reds',
+            f_evoked.plot_topomap(times=t_s, mask=mask, axes=ax_snaps_flat[i], cmap='Reds',
                               vmin=np.min, vmax=np.max, show=False,
                               colorbar=False, mask_params=dict(markersize=10))
         
@@ -374,7 +392,7 @@ if __name__ == "__main__":
     
     X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs)
         
-    T_obs, clusters, cluster_p_values, H0 = permTestImpT(X, tfr_epochs, n_perm=23)
+    T_obs, clusters, cluster_p_values, H0 = permTestImpT(X, tfr_epochs, n_perm=300, thresh=2.1)
     
     if plot:
         clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs, p_accept= p_acc)
