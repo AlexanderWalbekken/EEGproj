@@ -100,21 +100,24 @@ def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T"
     
     # Changing statistical function to use for each "point"
     # Treshhold must be tailored to the given stat-funtion
-    if ttype == "correlation":
+    #num_categories = num_categories #Why????? Global vs local scope i guess in the testFun?
+    if ttype == "corr":
         import statsmodels.api as sm
         def testFun(*args):
-            if num_categories == None:
-                num_categories = list(range(1,2+len(args)))
+            #if num_categories == None:
+            num_categories = list(range(1,1+len(args)))
             
-            X_arr = np.hstack([num_categories[i]*np.ones(args[i]) for i in range(len(num_categories))])
+            X_arr = np.hstack([num_categories[i]*np.ones(len(args[i])) for i in range(len(num_categories))])
             
-            Y_arr = np.hstack([arr for arr in args])
+            Y_arr = np.vstack([arr for arr in args])
             
-            model = sm.OLS(Y_arr,X_arr)
+            t_vals = np.empty(Y_arr.shape[1])
+            for i in range(Y_arr.shape[1]):
+                model = sm.OLS(Y_arr[:,i],X_arr)
 
-            results = model.fit()
-            slope = results.params
-            t_vals = results.tvalues
+                results = model.fit()
+                slope = results.params
+                t_vals[i] = results.tvalues
             
             return t_vals
         
