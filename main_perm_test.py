@@ -18,7 +18,7 @@ import itertools as it
 #subgroups [keys1,keys2], where keys* are then lists(or array) of the keys to be used in the groups
 #e_ids is a list [ids1,ids2], where ids* are list of the event ids to use for each group
 def createGroupsFreq(subgroups, e_ids, All_epochs, baseline = [-0.5,-0.2], 
-                     freq_vars = {"freqs":np.arange(4, 38, 2), "n_cycles": 5}):
+                     freq_vars = {"freqs":np.arange(4, 38, 2), "n_cycles": 5}, crop_post = None, crop_pre = None):
 
     # Dividing into two groups
     Group1 = []
@@ -28,7 +28,7 @@ def createGroupsFreq(subgroups, e_ids, All_epochs, baseline = [-0.5,-0.2],
     G2 = []
     
     
-    def powerMinusERP(subject,id_in, All_epochs = All_epochs, baseline = baseline, crop_post = None, crop_pre = None):
+    def powerMinusERP(subject,id_in, All_epochs = All_epochs, baseline = baseline):
         # --Freq variables--
         frequencies = freq_vars["freqs"] #np.arange(4, 38, 2)
         n_cycles_morlet = freq_vars["n_cycles"]  #5 #2
