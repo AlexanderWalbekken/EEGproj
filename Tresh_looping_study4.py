@@ -25,10 +25,10 @@ G2_ids = ['audiovisual/low']
 G1_subgroup = subjectIDs
 G2_subgroup = subjectIDs
 ##
-freq_variables = freq_vars = {"freqs":np.arange(4, 38, 2), "n_cycles": 3}
+freq_variables = freq_vars = {"freqs":np.arange(4, 38, 2), "n_cycles": 5}
 
 
-X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], allEpochs, baseline=[0.4, 0.5], freq_vars = freq_variables)
+X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], allEpochs, crop_post= [0.58+0,0.58+0.500], baseline=[0.4, 0.5], freq_vars = freq_variables)
 
 
 loop_tail = 0

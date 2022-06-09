@@ -100,7 +100,7 @@ for subjectID in allFiles:
     
     # Create EpochsArray and add to dictionary
     subjectEpoch = mne.EpochsArray(subjectData, subjectInfo, events = subjectEvents, event_id = event_dict, tmin = -0.52) # MNE EpochsArray object
-    subjectEpoch = subjectEpoch.crop(0, 1.4) # Crop from 0.4 - 1 second
+    subjectEpoch = subjectEpoch #.crop(0, 1.4) # Crop from 0.4 - 1 second
     allEpochs[subjectID[:-4]] = subjectEpoch # Add to allEpochs dictionary 
     
 
