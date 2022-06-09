@@ -34,6 +34,7 @@ G2_subgroup = Non_speech
 
 X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs, crop_post= [0,0.500], freq_vars=f_vars)
 
+X = [X[0],X[1],X[1]]
 
 #Testing starts
 for loop_tail in tail_list:
