@@ -102,12 +102,15 @@ def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T"
     # Treshhold must be tailored to the given stat-funtion
     #num_categories = num_categories #Why????? Global vs local scope i guess in the testFun?
     if ttype == "corr":
+        
+        OUTnum_categories = list(range(1,1+len(args)))
+        OUTX_arr = np.hstack([num_categories[i]*np.ones(len(args[i])) for i in range(len(num_categories))])
         import statsmodels.api as sm
-        def testFun(*args):
+        def testFun(*args,X_arr = OUTX_arr):
             #if num_categories == None:
-            num_categories = list(range(1,1+len(args)))
+            #num_categories = list(range(1,1+len(args)))
             
-            X_arr = np.hstack([num_categories[i]*np.ones(len(args[i])) for i in range(len(num_categories))])
+            #X_arr = np.hstack([num_categories[i]*np.ones(len(args[i])) for i in range(len(num_categories))])
             
             Y_arr = np.vstack([arr for arr in args])
             
@@ -186,8 +189,8 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
     freqs = tfr_epochs.freqs
     
     
-    good_cluster_inds = np.where(p_values < p_accept)[0]
-    p_values_good = p_values[p_values < p_accept]
+    good_cluster_inds = np.where(p_values <= p_accept)[0]
+    p_values_good = p_values[p_values <= p_accept]
     
     for i_clu, clu_idx in enumerate(good_cluster_inds):
         # unpack cluster information, get unique indices

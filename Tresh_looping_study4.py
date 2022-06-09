@@ -40,14 +40,19 @@ for i, loop_tresh in enumerate(tresh_list):
                                                          thresh = loop_tresh, tail = loop_tail, seed = 4)
     clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs, min_ch_num = 3, p_accept= p_acc, 
                  show=False, save = True, folder=f"Tresh{loop_tresh :.1f}_tail={loop_tail}" )
+    if len(H0)>0:
+        min_p = np.min(cluster_p_values)
+        if min_p > p_acc:
+            clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs, min_ch_num = 3, p_accept= min_p, 
+                 show=False, save = True, folder=f"INSIG_Tresh{loop_tresh :.1f}_tail={loop_tail}" )
+    
+    
 
 
 import matplotlib.pyplot as plt
 plt.figure()
 plt.hist(H0,bins=1000)
 print(H0[0])
-print("Minimum p-val: ",np.min(cluster_p_values))
+print("Minimum p-val: ",min_p)
 plt.axvline(x = H0[0],linestyle = "dotted", color = 'r', label = 'First')
 plt.show()
-
-print("Minimum p-val: ",np.min(cluster_p_values))
