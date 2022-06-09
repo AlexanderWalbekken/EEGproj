@@ -17,7 +17,7 @@ from main_perm_test import createGroupsFreq, permTestImpT, clustersPlot
 
 ##
 tresh_list = [1.8,2.1]
-tail_list = [0]
+tail_list = [-1,0,1]
 per_perm_n = 200
 p_acc = 0.10
 ##

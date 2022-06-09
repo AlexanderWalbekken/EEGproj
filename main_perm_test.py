@@ -102,18 +102,27 @@ def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T"
     # Treshhold must be tailored to the given stat-funtion
     #num_categories = num_categories #Why????? Global vs local scope i guess in the testFun?
     if ttype == "corr":
-        
-        OUTnum_categories = list(range(1,1+len(args)))
-        OUTX_arr = np.hstack([num_categories[i]*np.ones(len(args[i])) for i in range(len(num_categories))])
+        X_flat = [X[il].reshape(X[il].shape[0],-1) for il in range(len(X))]
+        OUTnum_categories = list(range(1,1+len(X_flat)))
+        OUTX_arr = np.hstack([OUTnum_categories[i]*np.ones(len(X_flat[i])) for i in range(len(OUTnum_categories))])
         import statsmodels.api as sm
-        def testFun(*args,X_arr = OUTX_arr):
+        
+        OUTX_arr_constantadd = sm.add_constant(OUTX_arr)
+        def OLS_arr_func(a, X_arr = OUTX_arr_constantadd):
+            model = sm.OLS(a,X_arr)
+            results = model.fit()
+            return results.tvalues[-1] #last, should be turned to "1" after testing, but works either way
+        
+            return
+        
+        def testFun(*args,X_arr = OUTX_arr, OLS_arr = OLS_arr_func):
             #if num_categories == None:
             #num_categories = list(range(1,1+len(args)))
             
             #X_arr = np.hstack([num_categories[i]*np.ones(len(args[i])) for i in range(len(num_categories))])
             
             Y_arr = np.vstack([arr for arr in args])
-            
+            """
             t_vals = np.empty(Y_arr.shape[1])
             for i in range(Y_arr.shape[1]):
                 model = sm.OLS(Y_arr[:,i],X_arr)
@@ -121,8 +130,11 @@ def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T"
                 results = model.fit()
                 slope = results.params
                 t_vals[i] = results.tvalues
+                """
+            #Numpy implementation could be faster?
+            t_vals_arr = np.apply_along_axis(OLS_arr,0,Y_arr)
             
-            return t_vals
+            return t_vals_arr
         
     elif ttype == "F":
          testFun = None
