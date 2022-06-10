@@ -2,10 +2,6 @@ import numpy as np
 
 import mne
 
-from files_info_Study2 import Event_ids, direct, list_files, common
-from files_info_Study2 import Speech, Non_speech
-
-from Find_bads_and_interpolate import All_epochs, all_channels
 from joblib import Parallel, delayed
 import itertools as it
 
@@ -15,26 +11,46 @@ from main_perm_test import createGroupsFreq, permTestImpT, clustersPlot
 #os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 #DANGEROUS but getting error here
 
-##
-tresh_list = [1.8]
-tail_list = [-1,1]
-per_perm_n = 100
+
+############################
+# Choosing data here
+S2 = False
+############################
+if S2:
+    from files_info_Study2 import Event_ids, direct, list_files, common
+    from files_info_Study2 import Speech, Non_speech
+    from Find_bads_and_interpolate import All_epochs, all_channels
+else:
+    from loading import allEpochs, ch_names, event_dict, allFiles, directory, subjectIDs
+    All_epochs = allEpochs
+
+###
+tresh_list = [1.6,1.8,2,2.2,3]
+tail_list = [1,-1]
+per_perm_n = 200
 p_acc = 0.10
-##
+###
+f_vars = {"freqs":np.arange(4,8 +2,2),"n_cycles":5} # "+2" since the last step is excluded
+###
+G1_ids = ['audiovisual/low']
+G2_ids = ['audiovisual/mid']
+G3_ids = ['audiovisual/high']
 
-f_vars = {"freqs":np.arange(4,8+2,2),"n_cycles":5}
+#
+G1_subgroup = subjectIDs
+G2_subgroup = subjectIDs
+G3_subgroup = subjectIDs
+###
 
-##
-G1_ids = ['Tabi_A_Tabi_V','Tagi_A_Tagi_V'] #+ ['Tagi_A_Tabi_V', 'Tabi_A_Tagi_V']
-G2_ids = G1_ids
 
-G1_subgroup = Speech
-G2_subgroup = Non_speech
-##
+if S2:
+    X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids],
+                                     All_epochs, crop_post= [0,0.500], freq_vars=f_vars)
+else: #S4 (SNR) data tested
+    X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup, G3_subgroup], [G1_ids, G2_ids, G3_ids],
+                                     allEpochs, crop_post= [0.58+0,0.58+0.500], baseline=[0.4, 0.5], freq_vars = f_vars)
 
-X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs, crop_post= [0,0.500], freq_vars=f_vars)
-
-X = [X[0],X[1],X[1]]
+X = [X[0],X[1]]
 
 #Testing starts
 for loop_tail in tail_list:
@@ -50,16 +66,28 @@ for loop_tail in tail_list:
                     p_accept= p_acc, min_ch_num = 3,
                     show=False, save = True, folder= f"Tresh{loop_tresh :.1f}_tail={loop_tail}__perms={per_perm_n}" )#"none")#
 
+        # If no significant clusters
+        if len(H0)>0:
+            min_p = np.min(cluster_p_values)
+            if min_p > p_acc:
+                p_insig = np.sort(cluster_p_values)[:(min(10,len(cluster_p_values)))][-1]
+                clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs, min_ch_num = 3, p_accept= p_insig, 
+                    show=False, save = True, folder=f"INSIG_Tresh{loop_tresh :.1f}_tail={loop_tail}" )
+
 
 #For plotting histogram after test
-print(np.sort(H0)[:10])
-print(np.sort(H0)[-10:])
-print(H0[0])
-print("Minimum p-val: ",np.min(cluster_p_values))
-
-  
-import matplotlib.pyplot as plt
-plt.figure()
-plt.hist(H0,bins=1000)
-plt.axvline(x = H0[0],linestyle = "dotted", color = 'r', label = 'First')
-plt.show()
+if len(H0)>0:
+    H_ind = min(len(H0),10)
+    print(np.sort(H0)[:H_ind])
+    print(np.sort(H0)[-H_ind:])
+    print(H0[0])
+    print("Minimum p-val: ",np.min(cluster_p_values))
+    
+    import matplotlib.pyplot as plt
+    plt.close('all') 
+    plt.figure()
+    plt.hist(H0,bins=1000)
+    plt.axvline(x = H0[0],linestyle = "dotted", color = 'r', label = 'First')
+    plt.show()
+else:
+    print("Last run no clusters")
