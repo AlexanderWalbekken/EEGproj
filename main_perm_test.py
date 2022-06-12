@@ -312,7 +312,7 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
             f_map = f_map_total[:,snap_shot] #.mean(axis=1) #Assume the meam isn not needed for one time
             
             #Choosing only current channels
-            this_ch_inds = np.unique(space_inds[time_inds_all == snap_shot])
+            this_ch_inds = np.unique(np.array(space_inds)[time_inds_all == snap_shot])
             
             # create spatial mask
             mask = np.zeros((f_map.shape[0], 1), dtype=bool)
@@ -326,7 +326,7 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
                               colorbar=False, mask_params=dict(markersize=10))
         
         if show:
-            plt.show(block = False) #False in Spyder, True in VS-code for now...
+            plt.show(block = True) #False in Spyder, True in VS-code for now...
         
         if save:
             import os
@@ -362,7 +362,53 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
             
             os.chdir(wd) #CHANGING BACK!
 
+        
+def clustersSave(T_obs, clusters, cluster_p_values, H0, tfr_epochs, folder = None):
+    import os
+    import json
+    if folder == None:
+        raise Exception("No folder given")
+    wd = os.getcwd()
+    curr_path = wd + "\\plots\\" + folder
+    os.chdir(curr_path)
+    
+    #tfr_epochs.save("tfr_evoked-ave.fif", overwrite=True)
+    mne.time_frequency.write_tfrs("tfr_evoked-tfr.h5", tfr_epochs)
+    
+    data_dict = {
+        "obs": T_obs.tolist(),
+        "clusters": [[clusters[i][j].tolist() for j in range(len(clusters[i]))] for i in range(len(clusters))], #clusters,
+        "cluster_p_values": cluster_p_values.tolist(),
+        "H0": H0.tolist()
+    }
+    
+    with open('cluster_data.json', 'w') as outfile:
+        json.dump(data_dict, outfile)
+    
+    
+    os.chdir(wd) #CHANGING BACK!
 
+def clustersLoad(folder = None):
+    import os
+    import json
+    if folder == None:
+        raise Exception("No folder given")
+    wd = os.getcwd()
+    curr_path = wd + "\\plots\\" + folder
+    os.chdir(curr_path)
+    
+    
+    tfr_epochs = mne.time_frequency.read_tfrs("tfr_evoked-tfr.h5")[0]
+    
+    with open('cluster_data.json') as json_file:
+        data = json.load(json_file)
+    T_obs, clusters, cluster_p_values, H0 = np.array(data["obs"]), np.array(data["clusters"]), np.array(data["cluster_p_values"]), np.array(data["H0"])
+    
+    
+    os.chdir(wd) #CHANGING BACK!
+    
+    return T_obs, clusters, cluster_p_values, H0, tfr_epochs
+    
 ##############
 ####      ####
 ##   MAIN   ##
@@ -401,8 +447,12 @@ if __name__ == "__main__":
     if plot:
         clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs, p_accept= p_acc)
 
-        
 
+    
+    
+    
+    
+        
         
 ##
     

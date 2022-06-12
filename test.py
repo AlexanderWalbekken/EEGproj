@@ -5,7 +5,7 @@ import mne
 from joblib import Parallel, delayed
 import itertools as it
 
-from main_perm_test import createGroupsFreq, permTestImpT, clustersPlot
+from main_perm_test import createGroupsFreq, permTestImpT, clustersPlot, clustersSave
 
 #import os
 #os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
@@ -25,6 +25,7 @@ else:
     All_epochs = allEpochs
 
 ###
+test_type="corr"
 tresh_list = [1.6,1.8,2,2.2,3]
 tail_list = [1,-1]
 per_perm_n = 200
@@ -33,7 +34,7 @@ p_acc = 0.10
 f_vars = {"freqs":np.arange(4,8 +2,2),"n_cycles":5} # "+2" since the last step is excluded
 ###
 G1_ids = ['audiovisual/low']
-G2_ids = ['audiovisual/mid']
+G2_ids = ['audiovisual/med']
 G3_ids = ['audiovisual/high']
 
 #
@@ -47,10 +48,12 @@ if S2:
     X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids],
                                      All_epochs, crop_post= [0,0.500], freq_vars=f_vars)
 else: #S4 (SNR) data tested
-    X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup, G3_subgroup], [G1_ids, G2_ids, G3_ids],
+    X12, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids, G2_ids],
                                      allEpochs, crop_post= [0.58+0,0.58+0.500], baseline=[0.4, 0.5], freq_vars = f_vars)
-
-X = [X[0],X[1]]
+    X23, tfr_epochs = createGroupsFreq([G2_subgroup, G3_subgroup], [G2_ids, G3_ids],
+                                     allEpochs, crop_post= [0.58+0,0.58+0.500], baseline=[0.4, 0.5], freq_vars = f_vars)
+assert np.all(X12[1] == X23[0]), "Nonequal MID"
+X = [X12[0],X12[1],X23[1]]
 
 #Testing starts
 for loop_tail in tail_list:
@@ -60,11 +63,14 @@ for loop_tail in tail_list:
             loop_tresh = -loop_tresh
         
         T_obs, clusters, cluster_p_values, H0 = permTestImpT(X, tfr_epochs, n_perm=per_perm_n, 
-                                                            thresh = loop_tresh, tail = loop_tail, seed = 4, ttype="corr")
+                                                            thresh = loop_tresh, tail = loop_tail, seed = 4, ttype=test_type)
         
+        fol_name = f"Tresh{loop_tresh :.1f}_tail={loop_tail}__perms={per_perm_n}__type={test_type}"
         clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs, 
                     p_accept= p_acc, min_ch_num = 3,
-                    show=False, save = True, folder= f"Tresh{loop_tresh :.1f}_tail={loop_tail}__perms={per_perm_n}" )#"none")#
+                    show=False, save = True, folder= fol_name )
+        
+        clustersSave(T_obs, clusters, cluster_p_values, H0, tfr_epochs, folder = fol_name)
 
         # If no significant clusters
         if len(H0)>0:
