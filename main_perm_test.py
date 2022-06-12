@@ -368,19 +368,25 @@ def clustersSave(T_obs, clusters, cluster_p_values, H0, tfr_epochs, folder = Non
     import json
     if folder == None:
         raise Exception("No folder given")
+    
     wd = os.getcwd()
     curr_path = wd + "\\plots\\" + folder
+    if not os.path.exists(curr_path):
+        os.mkdir(curr_path)
     os.chdir(curr_path)
     
     #tfr_epochs.save("tfr_evoked-ave.fif", overwrite=True)
     mne.time_frequency.write_tfrs("tfr_evoked-tfr.h5", tfr_epochs)
     
-    data_dict = {
-        "obs": T_obs.tolist(),
-        "clusters": [[clusters[i][j].tolist() for j in range(len(clusters[i]))] for i in range(len(clusters))], #clusters,
-        "cluster_p_values": cluster_p_values.tolist(),
-        "H0": H0.tolist()
-    }
+    if len(H0) > 0:
+        data_dict = {
+            "obs": T_obs.tolist(),
+            "clusters": [[clusters[i][j].tolist() for j in range(len(clusters[i]))] for i in range(len(clusters))], #clusters,
+            "cluster_p_values": cluster_p_values.tolist(),
+            "H0": H0.tolist()
+        }
+    else:
+        data_dict = {"H0": "Empty"}
     
     with open('cluster_data.json', 'w') as outfile:
         json.dump(data_dict, outfile)
@@ -402,7 +408,11 @@ def clustersLoad(folder = None):
     
     with open('cluster_data.json') as json_file:
         data = json.load(json_file)
-    T_obs, clusters, cluster_p_values, H0 = np.array(data["obs"]), np.array(data["clusters"]), np.array(data["cluster_p_values"]), np.array(data["H0"])
+        
+    if data["H0"] == "Empty":
+        print("NO clusters\n"*8)
+    else:
+        T_obs, clusters, cluster_p_values, H0 = np.array(data["obs"]), np.array(data["clusters"]), np.array(data["cluster_p_values"]), np.array(data["H0"])
     
     
     os.chdir(wd) #CHANGING BACK!
