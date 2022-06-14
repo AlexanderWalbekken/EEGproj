@@ -28,8 +28,8 @@ else:
     All_epochs = allEpochs
 
 ###
-test_type="corr"
-tresh_list = [1.6,1.8,2,2.2,3]
+test_type="T"
+tresh_list = [1.2,1.6,1.8,2,2.2,3]
 tail_list = [1,-1]
 per_perm_n = 200
 p_acc = 0.10
@@ -37,7 +37,7 @@ p_acc = 0.10
 f_vars = {"freqs":np.arange(4,8 +2,2),"n_cycles":5} # "+2" since the last step is excluded
 
 ##
-G1_ids = ['Tabi_A_Tabi_V','Tagi_A_Tagi_V'] #+ ['Tagi_A_Tabi_V', 'Tabi_A_Tagi_V']
+G1_ids = ["audiovisual/congruent"]#['Tabi_A_Tabi_V','Tagi_A_Tagi_V'] #+ ['Tagi_A_Tabi_V', 'Tabi_A_Tagi_V']
 G2_ids = G1_ids
 
 G1_subgroup = Speech

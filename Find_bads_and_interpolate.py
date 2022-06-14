@@ -69,6 +69,24 @@ if __name__ == "__main__" and single_test:
 #Doing it for all
 ###############################
 
+#Not a pretty solution, but functional for more detailed indexing of events
+events_dict = epochs1.event_id
+new_dict = {}
+for key, value in events_dict.items():
+    if "_A" in key and "_V" in key:
+        new_key = key + "/audiovisual"
+        if key[:4] == key[7:11]:
+            new_key += "/congruent"
+        elif key[:4] != key[7:11]:
+            new_key += "/incongruent"
+    elif "_A" in key:
+        new_key = key + "/auditory"
+    elif "_V" in key:
+        new_key = key + "/visual"
+    else:
+        new_key = key
+    
+    new_dict[new_key] = value
 
 
 all_channels = epochs1.ch_names
@@ -79,6 +97,8 @@ list_of_bads_check = []
 for file in list_files:
     
     epochs_loop = mne.io.read_epochs_eeglab(direct +"\\" + file)
+    
+    epochs_loop.event_id = new_dict
     
     curr_channels = epochs_loop.ch_names
     bads_check = []
