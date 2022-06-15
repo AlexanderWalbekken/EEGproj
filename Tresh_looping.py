@@ -19,6 +19,17 @@ from main_perm_test import createGroupsFreq, permTestImpT, clustersPlot, cluster
 # Choosing data here
 S2 = True
 ############################
+###
+test_type="T"
+tresh_list = [1.2,1.6,1.8,2,2.2,3]
+tail_list = [1,-1]
+per_perm_n = 200
+p_acc = 0.10
+###
+f_vars = {"freqs":np.arange(4,8 +2,2),"n_cycles":5} # "+2" since the last step is excluded
+###
+
+
 if S2:
     from files_info_Study2 import Event_ids, direct, list_files, common
     from files_info_Study2 import Speech, Non_speech
@@ -43,20 +54,8 @@ else:
     G2_subgroup = subjectIDs
     ##
     
-    
-
-###
-test_type="T"
-tresh_list = [1.2,1.6,1.8,2,2.2,3]
-tail_list = [1,-1]
-per_perm_n = 200
-p_acc = 0.10
-###
-f_vars = {"freqs":np.arange(4,8 +2,2),"n_cycles":5} # "+2" since the last step is excluded
-###
-
+#Groups created with subtreacted ERP
 X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs, crop_post= crop_post, freq_vars=f_vars)
-
 
 #Testing starts
 for loop_tail in tail_list:

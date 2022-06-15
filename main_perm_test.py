@@ -307,7 +307,7 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
             t_s = tfr_epochs.times[snap_shot] #TODO: DOuble check this is completly accurate
         
             f_evoked = mne.EvokedArray(f_map[:, np.newaxis], tfr_epochs.info, tmin=t_s)
-            f_evoked.plot_topomap(times=t_s, mask=mask, axes=ax_snaps_flat[i], cmap='Reds',
+            f_evoked.plot_topomap(times=t_s, mask=mask, axes=ax_snaps_flat[i], cmap='autumn',
                               vmin=np.min, vmax=np.max, show=False,
                               colorbar=False, mask_params=dict(markersize=10))
         

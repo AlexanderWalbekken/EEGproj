@@ -53,16 +53,54 @@ def S4ERPplot(extra=False):
             erp.plot_joint()
 
 
-def ThetaTopoPlot(G1, G2):
-    grand_avg = mne.grand_average(G1)
-    grand_avg.plot_topomap(tmin=0, tmax=0.3, fmin=4, fmax=8, mode='logratio',
-                           vmin = -0.06, vmax = 0.06,title='Theta band')
+def ThetaTopoPlot(tfr_mat, name_mat, times = [0,0.3],f=[4,8]):
+    #Takes in nested lists
+    
+    x_dim = len(tfr_mat)
+    y_dim = len(tfr_mat[0])
+    
+    #fig = plt.figure()
+    #ax = fig.subplots(x_dim,y_dim)
+    fig, ax = plt.subplots(x_dim,y_dim)
+    
+    for x in range(x_dim):
+        for y in range(y_dim):
+            tfr = tfr_mat[x][y]
+
+            grand_avg = mne.grand_average(tfr)
+            ga_data = grand_avg.crop(tmin=times[0],tmax=times[1], fmin=f[0], fmax=f[1]).data
+            dB_ga_data = ga_data*10
+            """
+            mne.viz.plot_topomap(dB_ga_data, grand_avg.info,
+                                vmin = -0.2, vmax = 0.6,title=name_mat[x][y], axes = ax[x][y], show = False)
+            """
+            dB_grand_avg = mne.time_frequency.AverageTFR(grand_avg.info,dB_ga_data, 
+                                                         grand_avg.times, grand_avg.freqs, grand_avg.nave)
+            dB_grand_avg.plot_topomap(tmin=times[0], tmax=times[1], fmin=f[0], fmax=f[1], mode='logratio',
+                                vmin = -0.2, vmax = 0.6,title=name_mat[x][y], axes = ax[x][y], 
+                                show = False, colorbar = False)
+            #cbar_fmt = "%.2f" #"%:.2f"
+            """
+            import matplotlib.ticker as ticker
+            def myfmt(x, pos):
+                return '{0:.5f}'.format(x)
+            
+            plt.colorbar(ax[x][y], format=ticker.FuncFormatter(myfmt))
+            """
+    
+    image = ax[0][0].images
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+    fig.colorbar(image[0], cax=cbar_ax)            
+            
+    plt.show()
+    """
     #-100m
     grand_avg2 = mne.grand_average(G2)
     grand_avg2.plot_topomap(tmin=0, tmax=0.3, fmin=4, fmax=8, mode='logratio',
-                            vmin = -0.06, vmax = 0.06, title='Theta band2')
+                            vmin = -0.02, vmax = 0.06, title='Theta band2')
     print("j")
-    """
+    
     times = np.arange(0.05, 0.151, 0.02)
     evoked.plot_topomap(times, ch_type='mag', time_unit='s')
     """
@@ -81,11 +119,32 @@ if __name__ == "__main__":
         G1_subgroup = Speech
         G2_subgroup = Non_speech
         ##
+        """
         G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs, baseline=[-0.5,-0.2],
                                         freq_vars=f_vars, output_evoked=True)
         
-        ThetaTopoPlot(G1, G2)
-    
+        tfr_data =[[G1,G2],
+                   [G1,G2]]
+        tfr_names = [["Speech","Non-speech"],
+                     ["Speech","Non-speech"]]
+                
+        ThetaTopoPlot(tfr_data, tfr_names)
+        """
+
+        settings = [["audiovisual/congruent"],["audiovisual/incongruent"],["audiovisual/congruent"],["auditory"],["visual"]]
+
+        tfr_data = [[0,0,0,0],
+                    [0,0,0,0]]
+        for i, Group_ids in enumerate(settings):
+            G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [Group_ids,Group_ids], All_epochs, baseline=[-0.5,-0.2],
+                                                freq_vars=f_vars, output_evoked=True)
+            tfr_data[0][i] = G1
+            tfr_data[1][i] = G2
+
+        tfr_names = [["Congruent","Incongruent", "Audio", "Visual"],
+                    ["Congruent","Incongruent", "Audio", "Visual"]]
+        
+        ThetaTopoPlot(tfr_data, tfr_names)
 
 #mne.combine_evoked(theta_tfr, 'equal')
 #mne.grand_average(power_tots)
