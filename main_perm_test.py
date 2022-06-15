@@ -19,7 +19,8 @@ import itertools as it
 #subgroups [keys1,keys2], where keys* are then lists(or array) of the keys to be used in the groups
 #e_ids is a list [ids1,ids2], where ids* are list of the event ids to use for each group
 def createGroupsFreq(subgroups, e_ids, All_epochs, baseline = [-0.5,-0.2], 
-                     freq_vars = {"freqs":np.arange(4, 38, 2), "n_cycles": 5}, crop_post = None, crop_pre = None):
+                     freq_vars = {"freqs":np.arange(4, 38, 2), "n_cycles": 5}, crop_post = None, crop_pre = None, 
+                     output_evoked = False):
 
     # Dividing into two groups
     Group1 = []
@@ -82,12 +83,16 @@ def createGroupsFreq(subgroups, e_ids, All_epochs, baseline = [-0.5,-0.2],
     
     X = [np.array(Group1), np.array(Group2)]
 
-    return X, tfr_epochs
+    if output_evoked:
+        return G1, G2
+    else:
+        return X, tfr_epochs
 
 
 #-> X is the grouped data as it needs to be grouped in the mne.stats.permutation_cluster_test
 #-> tfr_epochs is an example epoch (Evoked object) that has been morlet transformed
-def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T", seed = None, num_categories = None):
+def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T",
+                 seed = None, num_categories = None, paired = False):
     # X, Treshhold, tail, n_perm
     times_list = tfr_epochs.times
     freqs_list = tfr_epochs.freqs
@@ -132,41 +137,22 @@ def permTestImpT(X, tfr_epochs, thresh = 12, tail = 0, n_perm = 524, ttype = "T"
 
             return t
     
-    # permittion test, runs in parallel
-    T_obs, clusters, cluster_p_values, H0 = mne.stats.permutation_cluster_test(X, 
-                                       threshold=thresh, tail=tail, #correct tail
-                                       n_permutations= n_perm, adjacency = adjacency,
-                                       n_jobs = -1, seed = seed,
-                                       stat_fun = testFun, buffer_size=None) #changed buffer size to try and debug
+    if ttype != "pairedT":
+        # permittion test, runs in parallel
+        T_obs, clusters, cluster_p_values, H0 = mne.stats.permutation_cluster_test(X, 
+                                        threshold=thresh, tail=tail,
+                                        n_permutations= n_perm, adjacency = adjacency,
+                                        n_jobs = -2, seed = seed,
+                                        stat_fun = testFun, buffer_size=None) #changed buffer size to debug, uses more mem
     
+    else:
+        X_sub = X[1] - X[0] # "second group larger than first"
+        T_obs, clusters, cluster_p_values, H0 = mne.stats.permutation_cluster_1samp_test(X_sub,
+                                        threshold=thresh, tail=tail,
+                                        n_permutations= n_perm, adjacency = adjacency,
+                                        n_jobs = -2, seed = seed, buffer_size=None)
 
-    if __name__ == "__main__" and False:
-        print(cluster_p_values[cluster_p_values < 0.999999])
     
-        print(min(cluster_p_values))
-        min_p_indx = np.argmin(cluster_p_values)
-        
-        # We can use the non subtractred (ERP) adn see if the clusters ther make sense
-        
-        ########
-        #Computing quantile?
-        ## Assuming the test statistic observed is the first (same between different tests)
-        obs_H0 = H0[0]
-        
-        #quanile of the test statistic
-        quantil = (H0<obs_H0).mean()
-        print(1-quantil)
-            
-        def infoCluster(clust):
-            
-            ch_ret = list(np.array(all_channels)[np.unique(clust[0])])
-            times_ret = times_list[np.unique(clust[2])]
-            freq_ret = freqs_list[np.unique(clust[1])]
-            
-            return ch_ret, freq_ret, times_ret
-        
-        for clusts in np.array(clusters)[cluster_p_values < 0.5]:
-            print(infoCluster(clusts))
 
     return T_obs, clusters, cluster_p_values, H0
     

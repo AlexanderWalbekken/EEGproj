@@ -10,8 +10,9 @@ import itertools as it
 from main_perm_test import createGroupsFreq, permTestImpT, clustersPlot
 
 ##
-tresh_list = [3,3.8,4,4.2]
+tresh_list = [1.2,1.8,2.2,3]
 per_perm_n = 200
+tail_list = [-1,0,1]
 p_acc = 0.10
 ##
 
@@ -31,24 +32,26 @@ freq_variables = freq_vars = {"freqs":np.arange(4, 20+2, 2), "n_cycles": 5}
 X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], allEpochs, crop_post= [0.58+0,0.58+0.500], baseline=[0.4, 0.5], freq_vars = freq_variables)
 
 
-loop_tail = 0
-for i, loop_tresh in enumerate(tresh_list):
-    if loop_tail == -1:
-        loop_tresh = -loop_tresh
-    
-    T_obs, clusters, cluster_p_values, H0 = permTestImpT(X, tfr_epochs, n_perm=per_perm_n, 
-                                                         thresh = loop_tresh, tail = loop_tail, seed = 4)
-    clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs, min_ch_num = 3, p_accept= p_acc, 
-                 show=False, save = True, folder=f"Tresh{loop_tresh :.1f}_tail={loop_tail}" )
-    
-    if len(H0)>0:
-        min_p = np.min(cluster_p_values)
-        if min_p > p_acc:
-            p_insig = np.sort(cluster_p_values)[:(min(10,len(cluster_p_values)))][-1]
-            clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs, min_ch_num = 3, p_accept= p_insig, 
-                 show=False, save = True, folder=f"INSIG_Tresh{loop_tresh :.1f}_tail={loop_tail}" )
-    
-    
+for loop_tail in tail_list:
+    for i, loop_tresh in enumerate(tresh_list):
+        if loop_tail == -1:
+            loop_tresh = -loop_tresh
+        
+        T_obs, clusters, cluster_p_values, H0 = permTestImpT(X, tfr_epochs, n_perm=per_perm_n, 
+                                                            thresh = loop_tresh, tail = loop_tail, seed = 4,
+                                                            ttype="pairedT")
+        
+        clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs, min_ch_num = 3, p_accept= p_acc, 
+                    show=False, save = True, folder=f"Tresh{loop_tresh :.1f}_tail={loop_tail}" )
+        
+        if len(H0)>0:
+            min_p = np.min(cluster_p_values)
+            if min_p > p_acc:
+                p_insig = np.sort(cluster_p_values)[:(min(10,len(cluster_p_values)))][-1]
+                clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs, min_ch_num = 3, p_accept= p_insig, 
+                    show=False, save = True, folder=f"INSIG_Tresh{loop_tresh :.1f}_tail={loop_tail}" )
+        
+        
 
 
 import matplotlib.pyplot as plt

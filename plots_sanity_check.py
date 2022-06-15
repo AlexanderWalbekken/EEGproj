@@ -1,20 +1,22 @@
 ############################
 # Choosing data here
-S2 = False
+S2 = True
+S4 = not S2
 ############################
 if S2:
     from files_info_Study2 import Event_ids, direct, list_files, common
     from files_info_Study2 import Speech, Non_speech
     from Find_bads_and_interpolate import All_epochs, all_channels
-else:
+if S4:
     from loading import allEpochs, ch_names, event_dict, allFiles, directory, subjectIDs
     All_epochs = allEpochs
     
-from unicodedata import name
 import numpy as np
 import mne    
 import matplotlib.pyplot as plt
 from main_perm_test import createGroupsFreq
+from joblib import Parallel, delayed
+import itertools as it
 
 def S4ERPplot(extra=False):
     
@@ -45,13 +47,36 @@ def S4ERPplot(extra=False):
             erp.plot_joint()
 
 
-def ThetaTopoPlot():
-    smth = 0
+def ThetaTopoPlot(G1, G2):
+    grand_avg = mne.grand_average(G1)
+    grand_avg.plot_topomap(tmin=0, tmax=0.3, fmin=4,fmax=8,mode='logratio',title='Theta band')
+    #-100m
+    grand_avg2 = mne.grand_average(G2)
+    grand_avg.plot_topomap(tmin=0, tmax=0.3, fmin=4,fmax=8,mode='logratio',title='Theta band2')
+    """
+    times = np.arange(0.05, 0.151, 0.02)
+    evoked.plot_topomap(times, ch_type='mag', time_unit='s')
+    """
+    
 
 if __name__ == "__main__":
-    S4ERPplot()
+    if S4:
+        S4ERPplot()
     
-    #
+    if S2:
+        f_vars = {"freqs":np.arange(4,8 +2,2),"n_cycles":5} # "+2" since the last step is excluded
+        ##
+        G1_ids = ["audiovisual/congruent"] # ['Tabi_A_Tabi_V','Tagi_A_Tagi_V'] #+ ['Tagi_A_Tabi_V', 'Tabi_A_Tagi_V']
+        G2_ids = G1_ids
+
+        G1_subgroup = Speech
+        G2_subgroup = Non_speech
+        ##
+        G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs, baseline=[-500,-200],
+                                        freq_vars=f_vars, output_evoked=True)
+        
+        ThetaTopoPlot(G1, G2)
+    
 
 #mne.combine_evoked(theta_tfr, 'equal')
 #mne.grand_average(power_tots)
