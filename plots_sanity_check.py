@@ -29,6 +29,11 @@ def S4ERPplot(extra=False):
     #ch_pick = [f"E{i}" for i in [5,6,11,12,13,112]]
 
     ch_pick = [f"E{i}" for i in [3,4,5,6,7,10,11,12,13]]# ,19,20 ####,124,112,118
+    
+    styles_dict = {labels[0]: {"color": "blue"},
+                labels[1]: {"color": "red"},
+                labels[2]: {"color": "green"},
+                labels[3]: {"color": "black", "linestyle": "dashed"},}
 
     for i in range(len(ids_test)):
         tots = []
@@ -39,8 +44,9 @@ def S4ERPplot(extra=False):
         erps.append( mne.grand_average(tots).pick(ch_pick).filter(l_freq = None, h_freq = 40) )
 
     dict_all = {labels[i]:mne.channels.combine_channels(erps[i],dict(al = [i for i in range(len(ch_pick))])) for i in range(len(labels))}
-    mne.viz.plot_compare_evokeds(dict_all,
-                                legend='upper left', show_sensors='upper right')
+    mne.viz.plot_compare_evokeds(dict_all, styles = styles_dict, ylim=dict(eeg=[-2, 2]),
+                                vlines = [0.58],
+                                legend='upper right', show_sensors='upper left')
 
     if extra:
         for erp in erps:
@@ -49,10 +55,13 @@ def S4ERPplot(extra=False):
 
 def ThetaTopoPlot(G1, G2):
     grand_avg = mne.grand_average(G1)
-    grand_avg.plot_topomap(tmin=0, tmax=0.3, fmin=4,fmax=8,mode='logratio',title='Theta band')
+    grand_avg.plot_topomap(tmin=0, tmax=0.3, fmin=4, fmax=8, mode='logratio',
+                           vmin = -0.06, vmax = 0.06,title='Theta band')
     #-100m
     grand_avg2 = mne.grand_average(G2)
-    grand_avg.plot_topomap(tmin=0, tmax=0.3, fmin=4,fmax=8,mode='logratio',title='Theta band2')
+    grand_avg2.plot_topomap(tmin=0, tmax=0.3, fmin=4, fmax=8, mode='logratio',
+                            vmin = -0.06, vmax = 0.06, title='Theta band2')
+    print("j")
     """
     times = np.arange(0.05, 0.151, 0.02)
     evoked.plot_topomap(times, ch_type='mag', time_unit='s')
@@ -72,7 +81,7 @@ if __name__ == "__main__":
         G1_subgroup = Speech
         G2_subgroup = Non_speech
         ##
-        G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs, baseline=[-500,-200],
+        G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs, baseline=[-0.5,-0.2],
                                         freq_vars=f_vars, output_evoked=True)
         
         ThetaTopoPlot(G1, G2)
