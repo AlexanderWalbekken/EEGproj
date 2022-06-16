@@ -109,7 +109,10 @@ for file in list_files:
             epochs_loop.info['bads'].append(ch)
             bads_check.append(ch)
             
-            
+    xch = "F6" #"FC6"
+    if not (xch in epochs_loop.info['bads']):
+        epochs_loop.info['bads'].append(xch)
+        bads_check.append(xch)
     
     epochs_loop.set_montage(std_montage) #biosemi64
     

@@ -35,6 +35,7 @@ if S2:
     from files_info_Study2 import Speech, Non_speech
     from Find_bads_and_interpolate import All_epochs, all_channels
     crop_post =[0,0.500]
+    baseline = [-0.5,-0.2]
     ##
     G1_ids = ["audiovisual/congruent"] # ['Tabi_A_Tabi_V','Tagi_A_Tagi_V'] #+ ['Tagi_A_Tabi_V', 'Tabi_A_Tagi_V']
     G2_ids = G1_ids
@@ -46,6 +47,7 @@ else:
     from loading import allEpochs, ch_names, event_dict, allFiles, directory, subjectIDs
     All_epochs = allEpochs
     crop_post = [0.58+0,0.58+0.500]
+    baseline = [0.58 -0.5,0.58 -0.2] #shifted to onset explicitly
     ##
     G1_ids = ['audiovisual/high']
     G2_ids = ['audiovisual/low']
@@ -55,7 +57,8 @@ else:
     ##
     
 #Groups created with subtreacted ERP
-X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs, crop_post= crop_post, freq_vars=f_vars)
+X, tfr_epochs = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs, 
+                                 crop_post= crop_post, freq_vars=f_vars, baseline=baseline)
 
 #Testing starts
 for loop_tail in tail_list:

@@ -180,7 +180,6 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         # unpack cluster information, get unique indices
         
         space_inds,  freq_inds_all, time_inds_all = clusters[clu_idx]
-        ### !!Check the order of these to match!!!
         
         ch_inds = np.unique(space_inds)
         time_inds = np.unique(time_inds_all)
@@ -207,6 +206,9 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         except:
             raise Exception("Probably a VERSION ERROR \n Need matplotlib v3.4 or higher for subfigures")
         
+        cmap_col ='autumn'
+        cmap_bw = 'Greys'
+        
         ax_topo = subfigs[0].subplots(1, 1)
     
         # create spatial mask
@@ -215,20 +217,27 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
     
         # plot average test statistic and mark significant sensors
         f_evoked = mne.EvokedArray(f_map[:, np.newaxis], tfr_epochs.info, tmin=0)
-        f_evoked.plot_topomap(times=0, mask=mask, axes=ax_topo, cmap='Reds',
-                              vmin=np.min, vmax=np.max, show=False,
-                              colorbar=False, mask_params=dict(markersize=10))
-        image = ax_topo.images[0]
-    
-        # create additional axes (for ERF and colorbar)
+        
+        cbar_max = np.max(f_evoked.data)
+        cbar_min = np.min(f_evoked.data)
+        
+                # create additional axes (for ERF and colorbar)
         divider = make_axes_locatable(ax_topo)
-    
         # add axes for colorbar
         ax_colorbar = divider.append_axes('right', size='5%', pad=0.05)
+        
+        f_evoked.plot_topomap(times=0, mask=mask, axes=ax_topo, cmap=cmap_col,
+                            colorbar=False, scalings = 1.0, vmin=cbar_min, vmax=cbar_max, #vmin=np.min, vmax=np.max, show=False
+                               show=False, mask_params=dict(markersize=10), contours=16)
+        image = ax_topo.images[0]
+    
+
+        #divider = make_axes_locatable(ax_topo)
+        
         plt.colorbar(image, cax=ax_colorbar)
         ax_topo.set_xlabel(
             f"Avg. {ttype}-map"+' ({:0.3f} - {:0.3f} s)'.format(*sig_times[[0, -1]]))
-
+        
         #felxible spectrogram size
         prct = ((topo_dim[1]-1)*100) + 60
         sizeprct = str(prct) + "%"
@@ -249,10 +258,11 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         F_obs_plot_sig[freq_inds_all,time_inds_all] = \
             F_obs_plot[freq_inds_all,time_inds_all]
         
-        for f_image, cmap in zip([F_obs_plot, F_obs_plot_sig], ['gray', 'autumn']):
+        for f_image, cmap in zip([F_obs_plot, F_obs_plot_sig], [cmap_bw, cmap_col]):
             c = ax_spec.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
                                extent=[tfr_epochs.times[0], tfr_epochs.times[-1],
-                                       freqs[0], freqs[-1]+(freqs[-1] - freqs[-2])])
+                                       freqs[0], freqs[-1]+(freqs[-1] - freqs[-2])],
+                               vmin=cbar_min, vmax=cbar_max, )
         ax_spec.set_xlabel('Time (s)')
         ax_spec.set_ylabel('Frequency (Hz)')
         ax_spec.set_title(title)
@@ -307,9 +317,9 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
             t_s = tfr_epochs.times[snap_shot] #TODO: DOuble check this is completly accurate
         
             f_evoked = mne.EvokedArray(f_map[:, np.newaxis], tfr_epochs.info, tmin=t_s)
-            f_evoked.plot_topomap(times=t_s, mask=mask, axes=ax_snaps_flat[i], cmap='autumn',
-                              vmin=np.min, vmax=np.max, show=False,
-                              colorbar=False, mask_params=dict(markersize=10))
+            f_evoked.plot_topomap(times=t_s, mask=mask, axes=ax_snaps_flat[i], cmap=cmap_col,
+                              colorbar=False,  scalings = 1.0, vmin=cbar_min, vmax=cbar_max, show=False,
+                              mask_params=dict(markersize=10))
         
         if show:
             plt.show(block = True) #False in Spyder, True in VS-code for now...

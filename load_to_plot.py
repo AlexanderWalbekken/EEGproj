@@ -5,7 +5,7 @@ from main_perm_test import clustersLoad, clustersPlot, clustersSave
 
 ####
 #folder in "plots"
-fol_name = "Tresh1.8_tail=0__perms=200"
+fol_name = "test_pl"
 ###
 
 p_acc = 0.10

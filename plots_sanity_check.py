@@ -1,15 +1,4 @@
-############################
-# Choosing data here
-S2 = True
-S4 = not S2
-############################
-if S2:
-    from files_info_Study2 import Event_ids, direct, list_files, common
-    from files_info_Study2 import Speech, Non_speech
-    from Find_bads_and_interpolate import All_epochs, all_channels
-if S4:
-    from loading import allEpochs, ch_names, event_dict, allFiles, directory, subjectIDs
-    All_epochs = allEpochs
+
     
 import numpy as np
 import mne    
@@ -53,7 +42,7 @@ def S4ERPplot(extra=False):
             erp.plot_joint()
 
 
-def ThetaTopoPlot(tfr_mat, name_mat, times = [0,0.3],f=[4,8]):
+def ThetaTopoPlot(tfr_mat, name_mat, times = [0,0.3],f=[3,9]):
     #Takes in nested lists
     
     x_dim = len(tfr_mat)
@@ -78,7 +67,7 @@ def ThetaTopoPlot(tfr_mat, name_mat, times = [0,0.3],f=[4,8]):
                                                          grand_avg.times, grand_avg.freqs, grand_avg.nave)
             dB_grand_avg.plot_topomap(tmin=times[0], tmax=times[1], fmin=f[0], fmax=f[1], mode='logratio',
                                 vmin = -0.2, vmax = 0.6,title=name_mat[x][y], axes = ax[x][y], 
-                                show = False, colorbar = False)
+                                show = False, colorbar = False, cmap = "viridis")
             #cbar_fmt = "%.2f" #"%:.2f"
             """
             import matplotlib.ticker as ticker
@@ -94,21 +83,60 @@ def ThetaTopoPlot(tfr_mat, name_mat, times = [0,0.3],f=[4,8]):
     fig.colorbar(image[0], cax=cbar_ax)            
             
     plt.show()
-    """
-    #-100m
-    grand_avg2 = mne.grand_average(G2)
-    grand_avg2.plot_topomap(tmin=0, tmax=0.3, fmin=4, fmax=8, mode='logratio',
-                            vmin = -0.02, vmax = 0.06, title='Theta band2')
-    print("j")
-    
-    times = np.arange(0.05, 0.151, 0.02)
-    evoked.plot_topomap(times, ch_type='mag', time_unit='s')
-    """
-    
+
+############################
+# Choosing data here
+S2 = True
+S4 = not S2
+############################
+if S2:
+    from files_info_Study2 import Event_ids, direct, list_files, common
+    from files_info_Study2 import Speech, Non_speech
+    from Find_bads_and_interpolate import All_epochs, all_channels
+if S4:
+    from loading import allEpochs, ch_names, event_dict, allFiles, directory, subjectIDs
+    All_epochs = allEpochs
+
 
 if __name__ == "__main__":
     if S4:
-        S4ERPplot()
+        #S4ERPplot()
+        
+        ##
+        f_vars = {"freqs":np.arange(4,8 +2,2),"n_cycles":5} # "+2" since the last step is excluded
+        ##
+        G1_ids = ['audiovisual/high']
+        G2_ids = ['audiovisual/low']
+
+        G1_subgroup = subjectIDs
+        G2_subgroup = subjectIDs
+        baseline = [0.58 -0.5,0.58 -0.2] #shifted to onset explicitly
+        ##
+        
+        settings = ["audiovisual/congruent","audiovisual/bg","auditory","visual"]
+
+        tfr_data = [[0,0,0,0],
+                    [0,0,0,0]]
+        
+        for i in range(len(settings)):
+            Group_id_1 = [settings[i] + "/high"]
+            Group_id_2 = [settings[i]+ "/low"]
+            G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [Group_id_1,Group_id_2], All_epochs, baseline=baseline,
+                                                freq_vars=f_vars, output_evoked=True)
+            tfr_data[0][i] = G1
+            tfr_data[1][i] = G2
+
+        tfr_names = [["AV Congruent","AV Incongruent", "Audio", "Visual"],
+                    ["AV Congruent","AV Incongruent", "Audio", "Visual"]]
+        
+        ThetaTopoPlot(tfr_data, tfr_names,times = [0 +0.58,0.3 + 0.58])
+        
+        ##
+        
+        
+        G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [Group_ids,Group_ids], All_epochs, 
+                                  baseline=[-0.5 +  0.58,-0.2 +  0.58],
+                                    freq_vars=f_vars, output_evoked=True)
     
     if S2:
         f_vars = {"freqs":np.arange(4,8 +2,2),"n_cycles":5} # "+2" since the last step is excluded
@@ -131,18 +159,20 @@ if __name__ == "__main__":
         ThetaTopoPlot(tfr_data, tfr_names)
         """
 
-        settings = [["audiovisual/congruent"],["audiovisual/incongruent"],["audiovisual/congruent"],["auditory"],["visual"]]
+        settings = [["audiovisual/congruent"],["audiovisual/incongruent"],["auditory"],["visual"]]
 
         tfr_data = [[0,0,0,0],
                     [0,0,0,0]]
-        for i, Group_ids in enumerate(settings):
+        
+        for i in range(len(settings)):
+            Group_ids = settings[i]
             G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [Group_ids,Group_ids], All_epochs, baseline=[-0.5,-0.2],
                                                 freq_vars=f_vars, output_evoked=True)
             tfr_data[0][i] = G1
             tfr_data[1][i] = G2
 
-        tfr_names = [["Congruent","Incongruent", "Audio", "Visual"],
-                    ["Congruent","Incongruent", "Audio", "Visual"]]
+        tfr_names = [["AV Congruent","AV Incongruent", "Audio", "Visual"],
+                    ["AV Congruent","AV Incongruent", "Audio", "Visual"]]
         
         ThetaTopoPlot(tfr_data, tfr_names)
 
