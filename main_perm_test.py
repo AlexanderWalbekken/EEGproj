@@ -206,7 +206,7 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         except:
             raise Exception("Probably a VERSION ERROR \n Need matplotlib v3.4 or higher for subfigures")
         
-        cmap_col ='autumn'
+        cmap_col ='autumn' #cividis
         cmap_bw = 'Greys'
         
         ax_topo = subfigs[0].subplots(1, 1)
@@ -293,11 +293,11 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         # add another colorbar
         ax_colorbar2 = divider.append_axes('right', size='5%', pad=0.05)
         plt.colorbar(c, cax=ax_colorbar2)
-        ax_colorbar2.set_ylabel(f'{ttype}-stat')
+        #ax_colorbar2.set_ylabel(f'{ttype}-stat')
         # add another ANOTHER colorbar
-        ax_colorbar3 = divider.append_axes('right', size='5%', pad=0.05)
-        plt.colorbar(c_save[1], cax=ax_colorbar2)
-        ax_colorbar2.set_ylabel(f'{ttype}-stat')
+        ax_colorbar3 = divider.append_axes('right', size='5%', pad=0.3)
+        plt.colorbar(c_save[0], cax=ax_colorbar3)
+        ax_colorbar3.set_ylabel(f'{ttype}-stat')
         
     
         # clean up viz [Has trouble working with subfigures]

@@ -57,9 +57,11 @@ def ThetaTopoPlot(tfr_mat, name_mat, times = [0,0.3],f=[3,9], dBscale = [-0.2,0.
         for y in range(y_dim):
             tfr = tfr_mat[x][y]
             if Spectogram:
+                
+                plt.rcParams.update({'font.size': 6})
                 freqs = tfr[0].freqs
                 #dict_ch = {"all": [i for i in range(len(tfr[0].info.ch_names))]}
-                avg_tfr = mne.combine_evoked(tfr, weights = "equal")
+                avg_tfr = mne.combine_evoked(tfr, weights = "equal").crop(times[0], times[-1])
                 #combined_tfr = mne.channels.combine_channels(avg_tfr,dict_ch)
                 dB_img = avg_tfr.data.mean(axis=0)*10
                 ax[x][y].imshow(dB_img, cmap="viridis", aspect='auto', origin='lower',
@@ -108,7 +110,8 @@ def ThetaTopoPlot(tfr_mat, name_mat, times = [0,0.3],f=[3,9], dBscale = [-0.2,0.
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
     fig.colorbar(image[0], cax=cbar_ax)            
-            
+    
+
     plt.show()
 
 ############################
@@ -132,7 +135,7 @@ if __name__ == "__main__":
         ##
         f_vars = {"freqs":np.arange(4,8 +2,2),"n_cycles":5} # "+2" since the last step is excluded
         ##
-        G1_ids = ['audiovisual/high']
+        G1_ids = ['audiovisual/high'] #high (less theta band, more integration)
         G2_ids = ['audiovisual/low']
 
         G1_subgroup = subjectIDs
@@ -147,18 +150,19 @@ if __name__ == "__main__":
                     [0,0,0,0]]
         
         for i in range(len(settings)):
-            Group_id_1 = [settings[i] + "/low"]
-            Group_id_2 = [settings[i]+ "/high"]
+            Group_id_1 = [settings[i] + "/high"]
+            Group_id_2 = [settings[i]+ "/low"]
             G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [Group_id_1,Group_id_2], All_epochs, 
                                       baseline=baseline,
                                                 freq_vars=f_vars, output_evoked=True)
             if subtracting:
                 G_sub = []
                 for idx in range(len(G1)):
-                    sub_ev = mne.combine_evoked([G1[idx],G2[idx]], [1,-1]) #Normal subtraction
+                    sub_ev = mne.combine_evoked([G1[idx],G2[idx]], [-1,1]) #Normal subtraction
                     G_sub.append(sub_ev)
                     
                 tfr_data[0][i] = G_sub
+                tfr_data[1][i] = G_sub
                 dBscale = [-0.4,0.4]
             else:
                 tfr_data[0][i] = G1
@@ -175,9 +179,6 @@ if __name__ == "__main__":
     if S2:
         f_vars = {"freqs":np.arange(4,16 +2,2),"n_cycles":5} # "+2" since the last step is excluded
         ##
-        G1_ids = ["audiovisual/congruent"] # ['Tabi_A_Tabi_V','Tagi_A_Tagi_V'] #+ ['Tagi_A_Tabi_V', 'Tabi_A_Tagi_V']
-        G2_ids = G1_ids
-
         G1_subgroup = Speech
         G2_subgroup = Non_speech
         ##
@@ -194,13 +195,14 @@ if __name__ == "__main__":
         
         for i in range(len(settings)):
             Group_ids = settings[i]
-            G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [Group_ids,Group_ids], All_epochs, baseline=[-0.5,-0.2],
+            G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [Group_ids,Group_ids], All_epochs, 
+                                      baseline=[-0.3,-0.0],
                                                 freq_vars=f_vars, output_evoked=True)
             tfr_data[0][i] = G1
             tfr_data[1][i] = G2
         
         
-        ThetaTopoPlot(tfr_data, tfr_names, Spectogram=True, dBscale=[-0.2,1.2])
+        ThetaTopoPlot(tfr_data, tfr_names, Spectogram=True, dBscale=[-0.2,1.2], times=[-0.9,0.9])
 
 #mne.combine_evoked(theta_tfr, 'equal')
 #mne.grand_average(power_tots)
