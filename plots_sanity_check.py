@@ -42,7 +42,8 @@ def S4ERPplot(extra=False):
             erp.plot_joint()
 
 
-def ThetaTopoPlot(tfr_mat, name_mat, times = [0,0.3],f=[3,9]):
+def ThetaTopoPlot(tfr_mat, name_mat, times = [0,0.3],f=[3,9], dBscale = [-0.2,0.6], 
+                  Spectogram = False):
     #Takes in nested lists
     
     x_dim = len(tfr_mat)
@@ -55,19 +56,45 @@ def ThetaTopoPlot(tfr_mat, name_mat, times = [0,0.3],f=[3,9]):
     for x in range(x_dim):
         for y in range(y_dim):
             tfr = tfr_mat[x][y]
-
-            grand_avg = mne.grand_average(tfr)
-            ga_data = grand_avg.crop(tmin=times[0],tmax=times[1], fmin=f[0], fmax=f[1]).data
-            dB_ga_data = ga_data*10
-            """
-            mne.viz.plot_topomap(dB_ga_data, grand_avg.info,
-                                vmin = -0.2, vmax = 0.6,title=name_mat[x][y], axes = ax[x][y], show = False)
-            """
-            dB_grand_avg = mne.time_frequency.AverageTFR(grand_avg.info,dB_ga_data, 
-                                                         grand_avg.times, grand_avg.freqs, grand_avg.nave)
-            dB_grand_avg.plot_topomap(tmin=times[0], tmax=times[1], fmin=f[0], fmax=f[1], mode='logratio',
-                                vmin = -0.2, vmax = 0.6,title=name_mat[x][y], axes = ax[x][y], 
-                                show = False, colorbar = False, cmap = "viridis")
+            if Spectogram:
+                freqs = tfr[0].freqs
+                #dict_ch = {"all": [i for i in range(len(tfr[0].info.ch_names))]}
+                avg_tfr = mne.combine_evoked(tfr, weights = "equal")
+                #combined_tfr = mne.channels.combine_channels(avg_tfr,dict_ch)
+                dB_img = avg_tfr.data.mean(axis=0)*10
+                ax[x][y].imshow(dB_img, cmap="viridis", aspect='auto', origin='lower',
+                               extent=[times[0], times[-1],
+                                       freqs[0], freqs[-1]+(freqs[-1] - freqs[-2])],
+                               vmin=dBscale[0], vmax=dBscale[1] )
+                
+                ax[x][y].set_xlabel('Time (s)')
+                ax[x][y].set_ylabel('Frequency (Hz)')
+                #ax[x][y].set_title(title)
+                
+                #fixing frequency ticks (attempt 1)
+                ##ax_spec.set_yticks(freqs)
+                #fixing frequency ticks (attempt 2)
+                
+                freq_step = (freqs[-1] - freqs[-2])
+                ax[x][y].set_yticks(list(freqs))
+                ax[x][y].set_yticklabels('')
+                ax[x][y].set_yticks(freqs + (freq_step/2), minor=True)
+                
+                ratio = len(freqs)//10
+                ylabs = [str(freqs[j]) if j%(ratio+1) == 0 else '' for j in range(len(freqs))]
+                ax[x][y].set_yticklabels(ylabs, minor=True)
+                
+                
+            else:
+                grand_avg = mne.grand_average(tfr)
+                ga_data = grand_avg.crop(tmin=times[0],tmax=times[1], fmin=f[0], fmax=f[1]).data
+                dB_ga_data = ga_data*10
+                
+                dB_grand_avg = mne.time_frequency.AverageTFR(grand_avg.info,dB_ga_data, 
+                                                            grand_avg.times, grand_avg.freqs, grand_avg.nave)
+                dB_grand_avg.plot_topomap(tmin=times[0], tmax=times[1], fmin=f[0], fmax=f[1], mode='logratio',
+                                    vmin = dBscale[0], vmax = dBscale[1],title=name_mat[x][y], axes = ax[x][y], 
+                                    show = False, colorbar = False, cmap = "viridis")
             #cbar_fmt = "%.2f" #"%:.2f"
             """
             import matplotlib.ticker as ticker
@@ -114,32 +141,39 @@ if __name__ == "__main__":
         ##
         
         settings = ["audiovisual/congruent","audiovisual/bg","auditory","visual"]
+        subtracting = True
 
         tfr_data = [[0,0,0,0],
                     [0,0,0,0]]
         
         for i in range(len(settings)):
-            Group_id_1 = [settings[i] + "/high"]
-            Group_id_2 = [settings[i]+ "/low"]
-            G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [Group_id_1,Group_id_2], All_epochs, baseline=baseline,
+            Group_id_1 = [settings[i] + "/low"]
+            Group_id_2 = [settings[i]+ "/high"]
+            G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [Group_id_1,Group_id_2], All_epochs, 
+                                      baseline=baseline,
                                                 freq_vars=f_vars, output_evoked=True)
-            tfr_data[0][i] = G1
-            tfr_data[1][i] = G2
+            if subtracting:
+                G_sub = []
+                for idx in range(len(G1)):
+                    sub_ev = mne.combine_evoked([G1[idx],G2[idx]], [1,-1]) #Normal subtraction
+                    G_sub.append(sub_ev)
+                    
+                tfr_data[0][i] = G_sub
+                dBscale = [-0.4,0.4]
+            else:
+                tfr_data[0][i] = G1
+                tfr_data[1][i] = G2
+            
 
         tfr_names = [["AV Congruent","AV Incongruent", "Audio", "Visual"],
                     ["AV Congruent","AV Incongruent", "Audio", "Visual"]]
         
-        ThetaTopoPlot(tfr_data, tfr_names,times = [0 +0.58,0.3 + 0.58])
+        ThetaTopoPlot(tfr_data, tfr_names,times = [0 +0.58,0.3 + 0.58], dBscale = dBscale)
         
         ##
-        
-        
-        G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [Group_ids,Group_ids], All_epochs, 
-                                  baseline=[-0.5 +  0.58,-0.2 +  0.58],
-                                    freq_vars=f_vars, output_evoked=True)
     
     if S2:
-        f_vars = {"freqs":np.arange(4,8 +2,2),"n_cycles":5} # "+2" since the last step is excluded
+        f_vars = {"freqs":np.arange(4,16 +2,2),"n_cycles":5} # "+2" since the last step is excluded
         ##
         G1_ids = ["audiovisual/congruent"] # ['Tabi_A_Tabi_V','Tagi_A_Tagi_V'] #+ ['Tagi_A_Tabi_V', 'Tabi_A_Tagi_V']
         G2_ids = G1_ids
@@ -147,22 +181,16 @@ if __name__ == "__main__":
         G1_subgroup = Speech
         G2_subgroup = Non_speech
         ##
-        """
-        G1, G2 = createGroupsFreq([G1_subgroup , G2_subgroup], [G1_ids,G2_ids], All_epochs, baseline=[-0.5,-0.2],
-                                        freq_vars=f_vars, output_evoked=True)
-        
-        tfr_data =[[G1,G2],
-                   [G1,G2]]
-        tfr_names = [["Speech","Non-speech"],
-                     ["Speech","Non-speech"]]
-                
-        ThetaTopoPlot(tfr_data, tfr_names)
-        """
 
         settings = [["audiovisual/congruent"],["audiovisual/incongruent"],["auditory"],["visual"]]
-
+        #tfr_data = [[0,0],[0,0]]
+        #tfr_names = [["AV_cong","c"],["2","c"]]
+        
         tfr_data = [[0,0,0,0],
                     [0,0,0,0]]
+        
+        tfr_names = [["AV Congruent","AV Incongruent", "Audio", "Visual"],
+                    ["AV Congruent","AV Incongruent", "Audio", "Visual"]]
         
         for i in range(len(settings)):
             Group_ids = settings[i]
@@ -170,11 +198,9 @@ if __name__ == "__main__":
                                                 freq_vars=f_vars, output_evoked=True)
             tfr_data[0][i] = G1
             tfr_data[1][i] = G2
-
-        tfr_names = [["AV Congruent","AV Incongruent", "Audio", "Visual"],
-                    ["AV Congruent","AV Incongruent", "Audio", "Visual"]]
         
-        ThetaTopoPlot(tfr_data, tfr_names)
+        
+        ThetaTopoPlot(tfr_data, tfr_names, Spectogram=True, dBscale=[-0.2,1.2])
 
 #mne.combine_evoked(theta_tfr, 'equal')
 #mne.grand_average(power_tots)

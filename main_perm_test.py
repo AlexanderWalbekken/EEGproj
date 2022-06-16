@@ -218,8 +218,8 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         # plot average test statistic and mark significant sensors
         f_evoked = mne.EvokedArray(f_map[:, np.newaxis], tfr_epochs.info, tmin=0)
         
-        cbar_max = np.max(f_evoked.data)
-        cbar_min = np.min(f_evoked.data)
+        cbar_max = np.max(F_obs) #max(,np.std(F_obs)*2)#np.max(f_evoked.data)
+        cbar_min = np.min(F_obs) #np.min(f_evoked.data)
         
                 # create additional axes (for ERF and colorbar)
         divider = make_axes_locatable(ax_topo)
@@ -228,7 +228,7 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         
         f_evoked.plot_topomap(times=0, mask=mask, axes=ax_topo, cmap=cmap_col,
                             colorbar=False, scalings = 1.0, vmin=cbar_min, vmax=cbar_max, #vmin=np.min, vmax=np.max, show=False
-                               show=False, mask_params=dict(markersize=10), contours=16)
+                               show=False, mask_params=dict(markersize=10)) #, contours=16
         image = ax_topo.images[0]
     
 
@@ -248,7 +248,9 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         title = f'{p_values_good[i_clu] :.3f} p-value, Cluster #{i_clu+1}, with {len(ch_inds)} channels'
         if len(ch_inds) > 1:
             title += " (max over channels)"
-        F_obs_plot = F_obs[ch_inds, :, :].max(axis=0) #axis = -1
+    
+        
+        F_obs_plot = F_obs[ch_inds, :, :].mean(axis=0) #axis = -1
         F_obs_plot_sig = np.zeros(F_obs_plot.shape) * np.nan
         """
         F_obs_plot_sig[tuple(np.meshgrid(freq_inds, time_inds))] = \
@@ -258,11 +260,13 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         F_obs_plot_sig[freq_inds_all,time_inds_all] = \
             F_obs_plot[freq_inds_all,time_inds_all]
         
+        c_save = []
         for f_image, cmap in zip([F_obs_plot, F_obs_plot_sig], [cmap_bw, cmap_col]):
             c = ax_spec.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
                                extent=[tfr_epochs.times[0], tfr_epochs.times[-1],
                                        freqs[0], freqs[-1]+(freqs[-1] - freqs[-2])],
                                vmin=cbar_min, vmax=cbar_max, )
+            c_save.append(c)
         ax_spec.set_xlabel('Time (s)')
         ax_spec.set_ylabel('Frequency (Hz)')
         ax_spec.set_title(title)
@@ -290,6 +294,11 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         ax_colorbar2 = divider.append_axes('right', size='5%', pad=0.05)
         plt.colorbar(c, cax=ax_colorbar2)
         ax_colorbar2.set_ylabel(f'{ttype}-stat')
+        # add another ANOTHER colorbar
+        ax_colorbar3 = divider.append_axes('right', size='5%', pad=0.05)
+        plt.colorbar(c_save[1], cax=ax_colorbar2)
+        ax_colorbar2.set_ylabel(f'{ttype}-stat')
+        
     
         # clean up viz [Has trouble working with subfigures]
         #mne.viz.tight_layout()
