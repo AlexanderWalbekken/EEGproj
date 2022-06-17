@@ -51,8 +51,8 @@ def createGroupsFreq(subgroups, e_ids, All_epochs, baseline = [-0.5,-0.2],
                                                   return_itc=False,
                                                   freqs=frequencies, 
                                                   decim=decim_morlet)
-        
-        power = power.apply_baseline(mode="logratio", baseline = (bas[0],bas[1]))
+        if baseline !=None:
+            power = power.apply_baseline(mode="logratio", baseline = (bas[0],bas[1]))
         if crop_post != None:
             power = power.crop(crop_post[0],crop_post[1])
         
@@ -206,7 +206,7 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         except:
             raise Exception("Probably a VERSION ERROR \n Need matplotlib v3.4 or higher for subfigures")
         
-        cmap_col ='autumn' #cividis
+        cmap_col = 'YlOrBr'# 'YlOrBr'  #'viridis'# 'autumn'
         cmap_bw = 'Greys'
         
         ax_topo = subfigs[0].subplots(1, 1)
@@ -218,8 +218,8 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         # plot average test statistic and mark significant sensors
         f_evoked = mne.EvokedArray(f_map[:, np.newaxis], tfr_epochs.info, tmin=0)
         
-        cbar_max = np.max(F_obs) #max(,np.std(F_obs)*2)#np.max(f_evoked.data)
-        cbar_min = np.min(F_obs) #np.min(f_evoked.data)
+        cbar_max = np.max(F_obs)*1.05 #max(,np.std(F_obs)*2)#np.max(f_evoked.data)
+        cbar_min = np.min(F_obs)*1.05 #np.min(f_evoked.data)
         
                 # create additional axes (for ERF and colorbar)
         divider = make_axes_locatable(ax_topo)
@@ -247,7 +247,7 @@ def clustersPlot(T_obs, clusters, cluster_p_values, tfr_epochs,
         #title = 'Cluster #{0}, {1} spectrogram'.format(i_clu + 1, len(ch_inds))
         title = f'{p_values_good[i_clu] :.3f} p-value, Cluster #{i_clu+1}, with {len(ch_inds)} channels'
         if len(ch_inds) > 1:
-            title += " (max over channels)"
+            title += " (average over channels)"
     
         
         F_obs_plot = F_obs[ch_inds, :, :].mean(axis=0) #axis = -1
