@@ -5,7 +5,7 @@ from main_perm_test import clustersLoad, clustersPlot, clustersSave
 
 ####
 #folder in "plots"
-fol_name = "cong1"
+fol_name = "TBDIncongT=-1.6"
 ###
 
 p_acc = 0.5 #0.10

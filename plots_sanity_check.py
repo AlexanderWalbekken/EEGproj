@@ -127,10 +127,11 @@ def ThetaTopoPlot(tfr_mat, name_mat, times = [0,0.3],f=[3,9], dBscale = [-0.2,0.
         plt.colorbar(ax_curr, format=ticker.FuncFormatter(myfmt))
         """
     
-    image = ax[0][0].images
+    image = ax_flat[0].images
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-    fig.colorbar(image[0], cax=cbar_ax)
+    fig.colorbar(image[0], cax=cbar_ax, label = 'power (dB)')
+    cbar_ax.set_label('power (dB)')
     
     if ytitles != None:
         fig.subplots_adjust(left=0.05)
@@ -144,7 +145,7 @@ def ThetaTopoPlot(tfr_mat, name_mat, times = [0,0.3],f=[3,9], dBscale = [-0.2,0.
 
 ############################
 # Choosing data here
-S2 = True
+S2 = False
 S4 = not S2
 ############################
 if S2:
@@ -173,9 +174,16 @@ if __name__ == "__main__":
         
         settings = ["audiovisual/congruent","audiovisual/bg","auditory","visual"]
         subtracting = True
+        
+        tfr_names = [["AV Congruent","AV Incongruent", "Audio", "Visual"],
+                    ["","", "", ""]]
 
         tfr_data = [[0,0,0,0],
                     [0,0,0,0]]
+        
+        if subtracting:
+            tfr_data = [tfr_data[0]]
+            tfr_names = [tfr_names[0]]
         
         for i in range(len(settings)):
             Group_id_1 = [settings[i] + "/high"]
@@ -184,23 +192,25 @@ if __name__ == "__main__":
                                       baseline=None, #baseline=baseline
                                                 freq_vars=f_vars, output_evoked=True)
             if subtracting:
+                
                 G_sub = []
                 for idx in range(len(G1)):
-                    sub_ev = mne.combine_evoked([G1[idx],G2[idx]], [-1,1]) #Normal subtraction
+                    g1_data = G1[idx].data
+                    g2_data = G2[idx].data
+                    
+                    data_comp = np.log10(g2_data/g1_data)
+                    
+                    sub_ev = mne.time_frequency.AverageTFR(G1[idx].info, data_comp,G1[idx].times, G1[idx].freqs,G1[idx].nave)
                     G_sub.append(sub_ev)
                     
                 tfr_data[0][i] = G_sub
-                tfr_data[1][i] = G_sub
                 dBscale = [-0.4,0.4]
             else:
                 tfr_data[0][i] = G1
                 tfr_data[1][i] = G2
             
-
-        tfr_names = [["AV Congruent","AV Incongruent", "Audio", "Visual"],
-                    ["AV Congruent","AV Incongruent", "Audio", "Visual"]]
         
-        ThetaTopoPlot(tfr_data, tfr_names,times = [0 +0.58,0.3 + 0.58], dBscale = dBscale, baseline=baseline)
+        ThetaTopoPlot(tfr_data, tfr_names,times = [0 +0.58,0.3 + 0.58], dBscale = dBscale, baseline=None)
         
         ##
     
